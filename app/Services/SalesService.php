@@ -7,12 +7,16 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use App\Models\Product;
 use App\Models\SaleItem;
+use App\Services\InventoryService;
+use App\Services\PaymentService;
 
 class SalesService
 {
 
     public function __construct(
-        protected InventoryService $inventoryService
+            protected InventoryService $inventoryService,
+
+    protected PaymentService $paymentService,
     )
     {
 
@@ -116,7 +120,6 @@ class SalesService
             /*
              * Stage 4
              */
-            // $this->recordPayment(...);
 
             return $sale;
         });
@@ -163,7 +166,7 @@ class SalesService
 
             'change' => $amountReceived - $total,
 
-            'sale_type' => 'Cash Sale',
+            'sale_type' => 'Cash',
 
             'status' => 'Completed',
 

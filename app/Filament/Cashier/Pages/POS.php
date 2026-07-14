@@ -12,6 +12,8 @@ use App\Models\PaymentMethod;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use App\Services\SalesService;
+use Filament\Notifications\Notification;
 use Filament\Forms;
 
 
@@ -202,7 +204,7 @@ class POS extends Page implements HasActions
                 $item['tax']
             );
 
-            $this->subtotal += $item['line_total'];
+            $this->subtotal += $result['subtotal'];
 
             $this->discount += $item['discount'];
 
@@ -403,14 +405,29 @@ class POS extends Page implements HasActions
 
                 $change = $amountReceived - $this->total;
 
-                // Temporary
-                dd([
-                    'cart' => $this->cart,
-                    'customer' => $this->customerId,
-                    'payment_method' => $data['payment_method_id'],
-                    'amount_received' => $amountReceived,
-                    'change' => $change,
-                ]);
+                $sale = app(SalesService::class)->processSale(
+
+                    cart: $this->cart,
+
+                    customerId: $this->customerId,
+
+                    paymentMethodId: $data['payment_method_id'],
+
+                    amountReceived: (float) $data['amount_received'],
+
+                    cashier: auth()->user(),
+
+                );
+
+                $this->clearCart();
+
+                Notification::make()
+
+                    ->title("Sale {$sale->sale_number} completed successfully.")
+
+                    ->success()
+
+                    ->send();
 
             });
     }

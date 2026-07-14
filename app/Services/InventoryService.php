@@ -6,10 +6,7 @@ use App\Models\ProductStock;
 use App\Models\Product;
 use Exception;
 use App\Models\InventoryTransaction;
-use App\Models\Product;
-use App\Models\ProductStock;
 use Illuminate\Support\Facades\DB;
-use Exception;
 
 class InventoryService
 {
@@ -77,38 +74,6 @@ class InventoryService
             return $stock;
         });
     }
-
-    public function issueStock(
-            Product $product,
-            int $branchId,
-            float $quantity
-        ): ProductStock {
-
-            $stock = ProductStock::where('product_id', $product->id)
-                ->where('branch_id', $branchId)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ($stock->quantity_available < $quantity) {
-
-                throw new Exception(
-                    "{$product->product_name} has insufficient stock."
-                );
-
-            }
-
-            $stock->quantity_on_hand -= $quantity;
-
-            $stock->quantity_available =
-                $stock->quantity_on_hand -
-                $stock->quantity_reserved;
-
-            $stock->last_sold_at = now();
-
-            $stock->save();
-
-            return $stock;
-        }
 
     protected function createInventoryTransaction(
         ProductStock $stock,
