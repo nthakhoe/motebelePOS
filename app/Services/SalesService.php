@@ -120,6 +120,14 @@ class SalesService
             /*
              * Stage 4
              */
+            $this->PaymentService->recordPayment(
+                sale: $sale,
+                paymentMethodId: $data['payment_method_id'],
+                amount: $data['amount_paid'],
+                referenceNumber: $data['reference_number'] ?? null,
+                provider: $data['provider'] ?? null,
+                userId: auth()->id(),
+            );
 
             return $sale;
         });
