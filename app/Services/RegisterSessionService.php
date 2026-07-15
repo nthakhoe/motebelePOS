@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\RegisterSession;
+
 class RegisterSessionService
 {
     public static function generateNumber(): string

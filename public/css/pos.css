@@ -48,6 +48,7 @@
     background:#fff;
     border-right:1px solid #ddd;
     padding:20px;
+    overflow-y:auto;
 }
 
 .products-panel{
@@ -100,6 +101,7 @@
     border-left:1px solid #ddd;
     flex-direction:column;
     padding:20px;
+    overflow-y:auto;
 }
 
 .status-bar{

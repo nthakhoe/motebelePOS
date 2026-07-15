@@ -88,6 +88,8 @@ class PaymentService
 
                 'completed_at' => now(),
 
+                'payment_method_id' => $paymentMethod->id,
+
             ]);
 
             return $payment;
