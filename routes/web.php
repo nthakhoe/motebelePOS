@@ -9,12 +9,35 @@ Route::get('/pdo-test', function () {
         $pdo = new PDO(
             'mysql:host=67.205.146.116;port=3306;dbname=MotebelePOS',
             'letebele',
-            'P@55w.rd123!#'
+            'Test1234!'
         );
 
         return 'PDO Connected!';
     } catch (Throwable $e) {
         return $e->getMessage();
+    }
+});
+
+Route::get('/db-test', function () {
+    try {
+        DB::connection()->getPdo();
+
+        return response()->json([
+            'status' => 'Connected',
+            'host' => config('database.connections.mysql.host'),
+            'database' => config('database.connections.mysql.database'),
+            'username' => config('database.connections.mysql.username'),
+            'password_length' => strlen(config('database.connections.mysql.password') ?? ''),
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'Failed',
+            'host' => config('database.connections.mysql.host'),
+            'database' => config('database.connections.mysql.database'),
+            'username' => config('database.connections.mysql.username'),
+            'password_length' => strlen(config('database.connections.mysql.password') ?? ''),
+            'error' => $e->getMessage(),
+        ], 500);
     }
 });
 
