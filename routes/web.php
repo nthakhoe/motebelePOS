@@ -8,7 +8,7 @@ Route::get('/pdo-test', function () {
     try {
         $pdo = new PDO(
             'mysql:host=67.205.146.116;port=3306;dbname=MotebelePOS',
-            'letebele',
+            'motebele_pos',
             'Test1234!'
         );
 
