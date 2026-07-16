@@ -4,8 +4,6 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 
-use Illuminate\Support\Facades\Route;
-
 Route::get('/pdo-test', function () {
     try {
         $pdo = new PDO(
