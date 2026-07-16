@@ -22,22 +22,15 @@ Route::get('/db-test', function () {
     try {
         DB::connection()->getPdo();
 
-        return response()->json([
-            'status' => 'Connected',
-            'host' => config('database.connections.mysql.host'),
-            'database' => config('database.connections.mysql.database'),
-            'username' => config('database.connections.mysql.username'),
-            'password_length' => strlen(config('database.connections.mysql.password') ?? ''),
-        ]);
+        return 'Connected';
     } catch (\Throwable $e) {
         return response()->json([
-            'status' => 'Failed',
-            'host' => config('database.connections.mysql.host'),
-            'database' => config('database.connections.mysql.database'),
-            'username' => config('database.connections.mysql.username'),
-            'password_length' => strlen(config('database.connections.mysql.password') ?? ''),
-            'error' => $e->getMessage(),
-        ], 500);
+            'class' => get_class($e),
+            'message' => $e->getMessage(),
+            'code' => $e->getCode(),
+            'previous' => $e->getPrevious()?->getMessage(),
+            'config' => config('database.connections.mysql'),
+        ]);
     }
 });
 
