@@ -4,26 +4,19 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 
-Route::get('/db-test', function () {
-    try {
-        DB::connection()->getPdo();
+use Illuminate\Support\Facades\Route;
 
-        return response()->json([
-            'status' => 'Connected',
-            'host' => config('database.connections.mysql.host'),
-            'database' => config('database.connections.mysql.database'),
-            'username' => config('database.connections.mysql.username'),
-            'password_length' => strlen(config('database.connections.mysql.password') ?? ''),
-        ]);
-    } catch (\Throwable $e) {
-        return response()->json([
-            'status' => 'Failed',
-            'host' => config('database.connections.mysql.host'),
-            'database' => config('database.connections.mysql.database'),
-            'username' => config('database.connections.mysql.username'),
-            'password_length' => strlen(config('database.connections.mysql.password') ?? ''),
-            'error' => $e->getMessage(),
-        ], 500);
+Route::get('/pdo-test', function () {
+    try {
+        $pdo = new PDO(
+            'mysql:host=67.205.146.116;port=3306;dbname=MotebelePOS',
+            'letebele',
+            'P@55w.rd123!#'
+        );
+
+        return 'PDO Connected!';
+    } catch (Throwable $e) {
+        return $e->getMessage();
     }
 });
 
