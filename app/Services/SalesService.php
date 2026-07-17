@@ -131,6 +131,47 @@ class SalesService
 
             return $sale;
         });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Transaction has been committed.
+        | Safe to queue the fiscal receipt.
+        |--------------------------------------------------------------------------
+        */
+
+        $device = $this->deviceService->getRegisteredDeviceForBranch($sale->branch_id);
+
+        SubmitReceiptJob::dispatch(
+            $sale->id,
+            $device->id
+        )->onQueue('lekuka');
+
+        $canonical = $this->receiptSignatureBuilder->build(
+            $sale,
+            $payload,
+            $previousReceiptHash
+        );
+
+        $payload['receiptDeviceSignature'] =
+            $this->signatureService->sign(
+                $device,
+                $canonical
+            );
+
+        SubmitReceiptJob::dispatch(
+            $sale->id,
+            $device->id
+        )->onQueue('lekuka');
+
+        return $sale;
+    }
+
+    public function getRegisteredDeviceForBranch(int $branchId): LekukaDevice
+    {
+        return LekukaDevice::query()
+            ->where('branch_id', $branchId)
+            ->where('registered', true)
+            ->firstOrFail();
     }
 
     protected function createSale(

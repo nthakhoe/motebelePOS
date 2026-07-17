@@ -7,6 +7,7 @@ use App\Filament\Cashier\Resources\Sales\Schemas\SaleForm;
 use App\Filament\Cashier\Resources\Sales\Tables\SalesTable;
 use App\Models\Sale;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -17,6 +18,12 @@ class SaleResource extends Resource
     protected static ?string $model = Sale::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    protected static ?string $navigationLabel = 'POS Admin';
+
+    protected static UnitEnum|string|null $navigationGroup = 'Sales';
+
+    protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
     {

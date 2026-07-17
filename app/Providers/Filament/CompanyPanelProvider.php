@@ -26,7 +26,7 @@ class CompanyPanelProvider extends PanelProvider
         return $panel
             ->id('company')
             ->path('company')
-            ->login()
+            ->login(\App\Filament\Company\Auth\Login::class)
             ->discoverResources(
                 in: app_path('Filament/Company/Resources'),
                 for: 'App\\Filament\\Company\\Resources'

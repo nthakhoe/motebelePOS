@@ -26,7 +26,7 @@ class CashierPanelProvider extends PanelProvider
         return $panel
             ->id('cashier')
             ->path('cashier')
-            ->login()
+            ->login(\App\Filament\Cashier\Auth\Login::class)
 
             ->colors([
                 'primary' => Color::Amber,
