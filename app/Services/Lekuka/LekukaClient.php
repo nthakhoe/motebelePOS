@@ -5,6 +5,9 @@ namespace App\Services\Lekuka;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use App\Models\LekukaDevice;
+use Illuminate\Http\Client\RequestException;
+
 
 class LekukaClient
 {
@@ -50,8 +53,8 @@ class LekukaClient
             'ssl_key' => $this->certificates
                 ->getPrivateKeyPath($device),
 
-            'verify' => $this->certificates
-                ->getServerCertificatePath(),
+            // TEMPORARY - for testing only
+            'verify' => false,
         ]);
     }
 
@@ -200,4 +203,87 @@ class LekukaClient
     {
         return $id ?: (string) Str::uuid();
     }
+
+    protected function publicClient()
+    {
+        return Http::baseUrl(
+            config('services.lekuka.base_url')
+        )
+        ->timeout(60)
+        ->acceptJson()
+        ->withHeaders([
+
+            'DeviceModelName' =>
+                config('services.lekuka.device_model'),
+
+            'DeviceModelVersionNo' =>
+                config('services.lekuka.device_model_version'),
+
+        ]);
+    }
+
+    public function registerDevice(
+        LekukaDevice $device,
+        string $csr
+    ): array {
+
+        $payload = [
+            'activationKey'      => $device->activation_key,
+            'certificateRequest' => $csr,
+            'deviceModelName'    => trim($device->device_model),
+            'deviceModelVersion' => trim($device->device_model_version),
+        ];
+
+        $model = preg_replace('/[\r\n]+/', '', trim($device->device_model));
+        $version = preg_replace('/[\r\n]+/', '', trim($device->device_model_version));
+        $response = Http::baseUrl(config('services.lekuka.base_url'))
+            ->acceptJson()
+            ->withHeaders([
+                'DeviceModelName' => $model,
+                'DeviceModelVersion' => $version,
+            ])
+            ->post(
+                "/Public/v1/{$device->device_id}/RegisterDevice",
+                $payload
+            );
+
+        logger()->info('Lekuka Register Response', [
+            'status' => $response->status(),
+            'body'   => $response->body(),
+        ]);
+
+        if (! $response->successful()) {
+            throw new \Exception($response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function getServerCertificate(LekukaDevice $device): string
+    {
+        $response = $this->client($device)
+            ->get('/Public/v1/GetServerCertificate');
+
+        $this->handle($response);
+
+        return $response->json('certificate.0');
+    }
+
+    public function secureGet(
+        LekukaDevice $device,
+        string $endpoint,
+        string $action,
+        ?string $correlationId = null
+    ): Response {
+
+        return $this->request(
+            'GET',
+            $endpoint,
+            [],
+            $device,
+            $action,
+            $correlationId
+        );
+    }
+
 }

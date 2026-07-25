@@ -25,6 +25,17 @@ class Branch extends Model
         'is_active',
     ];
 
+
+    public function terminals()
+    {
+        return $this->hasMany(Terminal::class);
+    }
+
+    public function productStocks()
+    {
+        return $this->hasMany(ProductStock::class);
+    }
+
     public function company()
     {
         return $this->belongsTo(Company::class);
@@ -35,13 +46,28 @@ class Branch extends Model
         return $this->hasMany(User::class);
     }
 
-    public function terminals()
+    public function registers()
     {
-        return $this->hasMany(Terminal::class);
+        return $this->hasMany(Register::class);
     }
 
-    public function productStocks()
+    public function devices()
     {
-        return $this->hasMany(ProductStock::class);
+        return $this->hasMany(LekukaDevice::class);
+    }
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
+
+    public function customers()
+    {
+        return $this->hasMany(Customer::class);
+    }
+
+    public function products()
+    {
+        return $this->belongsToMany(Product::class);
     }
 }
