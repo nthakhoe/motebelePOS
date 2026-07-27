@@ -49,11 +49,11 @@ class ProductStockResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Inventory';
 
-    protected static ?string $navigationLabel = 'Product Stock';
+    protected static ?string $navigationLabel = 'Product Quanties';
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-archive-box';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 8;
 
     public static function form(Schema $schema): Schema
     {
@@ -278,7 +278,7 @@ class ProductStockResource extends Resource
 
                         DB::transaction(function () use ($record, $data) {
 
-                            $stockBefore = $record->quantity;
+                            $stockBefore = $record->quantity_on_hand;
 
                             if ($data['adjustment_type'] === 'increase') {
                                 $stockAfter = $stockBefore + $data['quantity'];
@@ -294,6 +294,7 @@ class ProductStockResource extends Resource
                             // Update Product Stock
                             $record->update([
                                 'quantity_on_hand' => $stockAfter,
+                                'quantity_available' => $stockAfter,
                             ]);
 
                             // Save Adjustment
@@ -313,15 +314,17 @@ class ProductStockResource extends Resource
                             // Create Stock Ledger Entry
                             InventoryTransaction::create([
                                 'company_id'       => $record->company_id,
+                                'branch_id'       => $record->branch_id,
                                 'product_id'       => $record->product_id,
                                 'transaction_type' => 'adjustment',
-                                'reference_no'     => null,
+                                'reference_id'     => $data['reference_no'],
                                 'quantity'         => $data['adjustment_type'] === 'increase'
                                     ? $data['quantity']
                                     : -$data['quantity'],
                                 'balance_after'          => $stockAfter,
                                 'remarks'          => $data['reason'],
                                 'created_by'       => Auth::id(),
+                                'user_id'       => Auth::id(),
                             ]);
 
                         });

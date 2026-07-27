@@ -51,4 +51,9 @@ class Company extends Model
     {
         return $this->hasMany(Terminal::class);
     }
+
+    public function stockCounts(): HasMany
+    {
+        return $this->hasMany(StockCount::class);
+    }
 }

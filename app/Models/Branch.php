@@ -70,4 +70,9 @@ class Branch extends Model
     {
         return $this->belongsToMany(Product::class);
     }
+
+    public function stockCounts(): HasMany
+    {
+        return $this->hasMany(StockCount::class);
+    }
 }

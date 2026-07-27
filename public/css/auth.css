@@ -776,3 +776,145 @@ ADMINISTRATOR THEME
     box-shadow:0 0 0 4px rgba(51,65,85,.12);
 
 }
+
+/*==================================================
+LOGIN INPUTS
+==================================================*/
+
+.block.mt-1.w-full{
+
+    width:100%;
+
+    height:56px;
+
+    padding:0 18px;
+
+    border:1px solid #D1D5DB;
+
+    border-radius:14px;
+
+    background:#FFFFFF;
+
+    color:#0F172A;
+
+    font-size:15px;
+
+    font-weight:500;
+
+    outline:none;
+
+    transition:all .25s ease;
+
+    box-shadow:
+        0 2px 8px rgba(15,23,42,.04);
+
+}
+
+/* Hover */
+
+.block.mt-1.w-full:hover{
+
+    border-color:#9CA3AF;
+
+}
+
+/* Focus */
+
+.block.mt-1.w-full:focus{
+
+    border-color:#16A34A;
+
+    box-shadow:
+        0 0 0 4px rgba(22,163,74,.12);
+
+}
+
+/* Placeholder */
+
+.block.mt-1.w-full::placeholder{
+
+    color:#94A3B8;
+
+    font-weight:400;
+
+}
+
+/* Disabled */
+
+.block.mt-1.w-full:disabled{
+
+    background:#F8FAFC;
+
+    cursor:not-allowed;
+
+    opacity:.7;
+
+}
+
+.fi-input-wrp-suffix{
+
+    color:#64748B;
+
+    cursor:pointer;
+
+    transition:.2s;
+
+}
+
+.fi-input-wrp-suffix:hover{
+
+    color:#16A34A;
+
+}
+
+.fi-fo-field-wrp{
+
+    margin-bottom:22px;
+
+}
+
+.fi-input-wrp {
+
+    border-radius:14px !important;
+
+    border:1px solid #D1D5DB;
+
+    min-height:56px;
+
+    transition:all .25s ease;
+
+}
+
+.fi-input-wrp:focus-within {
+
+    border-color:#16A34A;
+
+    box-shadow:0 0 0 4px rgba(22,163,74,.12);
+
+}
+
+.fi-input {
+
+    font-size:15px;
+
+    padding:0 16px;
+
+}
+
+.fi-fo-field-wrp-label{
+
+    font-size:14px;
+
+    font-weight:600;
+
+    color:#334155;
+
+    margin-bottom:8px;
+
+}
+
+.fi-fo-field-wrp{
+
+    margin-bottom:22px;
+
+}

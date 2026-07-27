@@ -79,4 +79,14 @@ class Terminal extends Model
     {
         return $this->hasMany(CashMovement::class);
     }
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
+
+    public function devices()
+    {
+        return $this->hasMany(LekukaDevice::class);
+    }
 }

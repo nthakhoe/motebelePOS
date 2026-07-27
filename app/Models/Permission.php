@@ -25,4 +25,9 @@ class Permission extends Model
     {
         return auth()->user()->can('delete_products');
     }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class);
+    }
 }

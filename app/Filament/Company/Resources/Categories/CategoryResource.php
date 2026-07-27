@@ -40,7 +40,7 @@ class CategoryResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = 'Inventory';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'category_name';
 
