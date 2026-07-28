@@ -224,7 +224,7 @@ class InventoryService
 
 	        'product_id' => $product->id,
 
-	        'reference_no' => $reference,
+	        'reference_id' => $reference,
 
 	        'transaction_type' => $type,
 
@@ -239,6 +239,8 @@ class InventoryService
 	        'remarks' => $remarks,
 
 	        'created_by' => $userId,
+
+	        'user_id' => $userId,
 
 	    ]);
 	}

@@ -267,9 +267,6 @@ class ProductStockResource extends Resource
                             ->step(0.01)
                             ->required(),
 
-                        Forms\Components\TextInput::make('reference_no')
-                            ->maxLength(100),
-
                         Forms\Components\Textarea::make('reason')
                             ->rows(3)
                             ->required(),
@@ -306,7 +303,6 @@ class ProductStockResource extends Resource
                                 'quantity'         => $data['quantity'],
                                 'stock_before'     => $stockBefore,
                                 'stock_after'      => $stockAfter,
-                                'reference_no'     => $data['reference_no'],
                                 'reason'           => $data['reason'],
                                 'adjustment_date'  => now(),
                             ]);
@@ -317,7 +313,7 @@ class ProductStockResource extends Resource
                                 'branch_id'       => $record->branch_id,
                                 'product_id'       => $record->product_id,
                                 'transaction_type' => 'adjustment',
-                                'reference_id'     => $data['reference_no'],
+                                'reference_id'     => null,
                                 'quantity'         => $data['adjustment_type'] === 'increase'
                                     ? $data['quantity']
                                     : -$data['quantity'],

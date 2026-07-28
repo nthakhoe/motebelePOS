@@ -26,4 +26,9 @@ class StockCountItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function countedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'counted_by');
+    }
 }

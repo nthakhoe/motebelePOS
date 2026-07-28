@@ -98,4 +98,13 @@ class Customer extends Model
     {
         return $query->where('is_walk_in', false);
     }
+
+    protected function fullName(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->customer_type === 'business'
+                ? $this->business_name
+                : trim($this->first_name . ' ' . $this->last_name),
+        );
+    }
 }

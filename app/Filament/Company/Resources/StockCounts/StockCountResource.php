@@ -7,8 +7,16 @@ use App\Filament\Company\Resources\StockCounts\Pages\EditStockCount;
 use App\Filament\Company\Resources\StockCounts\Pages\ListStockCounts;
 use App\Filament\Company\Resources\StockCounts\Schemas\StockCountForm;
 use App\Filament\Company\Resources\StockCounts\Tables\StockCountsTable;
+use App\Filament\Company\Resources\StockCounts\RelationManager\StockCountItemsRelationManager;
+
 use App\Models\StockCount;
 use App\Models\Company;
+use App\Models\Product;
+use App\Models\StockCountItem;
+use Filament\Notifications\Notification;
+use App\Services\Inventory\StockCountService;
+use App\Services\Inventory\InventoryService;
+use Illuminate\Support\Facades\DB;
 use BackedEnum;
 use UnitEnum;
 use Filament\Resources\Resource;
@@ -165,27 +173,88 @@ class StockCountResource extends Resource
 
                 ViewAction::make(),
 
-                EditAction::make()
-                    ->visible(fn ($record) => $record->status == 'Draft'),
-
                 Action::make('Count Items')
+                    ->label('Count Items')
                     ->icon('heroicon-o-clipboard-document-list')
-                    ->color('primary'),
+                    ->color('primary')
+                    ->visible(fn ($record) => $record->status === 'In Progress')
+                    ->url(fn ($record) => StockCountResource::getUrl('edit', [
+                        'record' => $record,
+                    ])),
 
                 Action::make('Start Count')
                     ->icon('heroicon-o-play')
                     ->color('warning')
-                    ->visible(fn ($record) => $record->status == 'Draft'),
+                    ->visible(fn ($record) => $record->status === 'Draft')
+                    ->requiresConfirmation()
+                    ->action(function ($record, StockCountService $service) {
+
+                        $service->start($record);
+
+                        Notification::make()
+                            ->title('Stock count started successfully.')
+                            ->success()
+                            ->send();
+                    }),
 
                 Action::make('Complete')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn ($record) => $record->status == 'In Progress'),
+                    ->visible(fn ($record) => $record->status === 'In Progress')
+                    ->requiresConfirmation()
+                    ->action(function ($record, StockCountService $service) {
+
+                        try {
+
+                            $service->complete($record);
+
+                            Notification::make()
+                                ->title('Stock count completed successfully.')
+                                ->success()
+                                ->send();
+
+                        } catch (\Exception $e) {
+
+                            Notification::make()
+                                ->title('Unable to complete stock count.')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
 
                 Action::make('Approve')
-                    ->icon('heroicon-o-shield-check')
+                    ->icon('heroicon-o-check-badge')
                     ->color('success')
-                    ->visible(fn ($record) => $record->status == 'Completed'),
+                    ->requiresConfirmation()
+                    ->visible(fn ($record) => $record->status === 'Completed')
+                    ->action(function (
+                        $record,
+                        StockCountService $stockCountService,
+                        InventoryService $inventoryService
+                    ) {
+
+                        try {
+
+                            $stockCountService->approve(
+                                $record,
+                                $inventoryService
+                            );
+
+                            Notification::make()
+                                ->title('Stock count approved successfully.')
+                                ->success()
+                                ->send();
+
+                        } catch (\Throwable $e) {
+
+                            Notification::make()
+                                ->title('Approval failed.')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
 
             ])
             ->filters([
@@ -223,7 +292,7 @@ class StockCountResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\StockCountItemsRelationManager::class,
         ];
     }
 
