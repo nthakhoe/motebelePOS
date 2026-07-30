@@ -91,7 +91,7 @@ class ConfigurationService
 
     }
 
-    public function current(
+    /*public function current(
         LekukaDevice $device
     ): ?LekukaConfiguration {
 
@@ -99,6 +99,17 @@ class ConfigurationService
             'device_id',
             $device->id
         )->first();
+    }*/
+
+    public function current(): ?LekukaConfiguration
+    {
+        $device = LekukaDevice::where('registered', 1)->first();
+
+        if (! $device) {
+            return null;
+        }
+
+        return LekukaConfiguration::where('device_id', $device->id)->first();
     }
 
     public function ensure(

@@ -24,18 +24,6 @@
 
 </div>
 
-        <div class="summary-row total">
-
-        <span>Total</span>
-
-        <strong>
-
-            M{{ number_format($total,2) }}
-
-        </strong>
-
-    </div>
-
     <div class="cart-items">
 
         @foreach($cart as $item)
@@ -98,17 +86,21 @@
 
             <div class="summary-row">
 
-                <span>Discount</span>
-
-                <strong>M{{ number_format($discount,2) }}</strong>
-
-            </div>
-
-            <div class="summary-row">
-
                 <span>VAT</span>
 
                 <strong>M{{ number_format($vat,2) }}</strong>
+
+            </div>
+
+            <div class="summary-row total">
+
+                <span>Total</span>
+
+                <strong>
+
+                    M{{ number_format($total,2) }}
+
+                </strong>
 
             </div>
 

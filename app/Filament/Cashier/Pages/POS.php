@@ -3,11 +3,15 @@
 namespace App\Filament\Cashier\Pages;
 
 use Filament\Pages\Page;
+use App\Services\Lekuka\DeviceService;
+use App\Services\Lekuka\ReceiptService;
+use App\Services\Lekuka\ConfigurationService;
 use UnitEnum;
 use BackedEnum;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Customer;
+use App\Models\LekukaDevice;
 use App\Models\PaymentMethod;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -15,11 +19,22 @@ use Filament\Actions\Contracts\HasActions;
 use App\Services\SalesService;
 use Filament\Notifications\Notification;
 use Filament\Forms;
+use Filament\Forms\Components\FileUpload;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\DatePicker;
 
 
 class POS extends Page implements HasActions
 {
     use InteractsWithActions;
+
     public $products = [];
 
     public $categories = [];
@@ -49,6 +64,10 @@ class POS extends Page implements HasActions
     public float $change = 0;
 
     public ?int $paymentMethodId = null;
+
+    public bool $showSaleCompletedModal = false;
+
+    public array $completedSale = [];
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-cart';
 
@@ -419,17 +438,59 @@ class POS extends Page implements HasActions
 
                 );
 
+                try {
+
+                    $device = LekukaDevice::where('registered', 1)->firstOrFail();
+
+                    $sale = app(ReceiptService::class)->submit($sale, $device);
+
+                } catch (\Throwable $e) {
+                dd(
+                        $e->getMessage(),
+                        $e->getFile(),
+                        $e->getLine(),
+                        $e->getTraceAsString()
+                    );
+
+                }
+
+                $this->completedSale = [
+                    'id'          => $sale->id,
+                    'sale_number' => $sale->sale_number,
+                    'receipt_no'  => $sale->receipt_no,
+                    'total'       => $sale->total,
+                    'paid'        => $amountReceived,
+                    'change'      => $change,
+                ];
+
                 $this->clearCart();
 
-                Notification::make()
-
-                    ->title("Sale {$sale->sale_number} completed successfully.")
-
-                    ->success()
-
-                    ->send();
+                $this->showSaleCompletedModal = true;
 
             });
+    }
+
+    public function printReceipt()
+    {
+        return redirect()->route(
+            'cashier.sales.receipt',
+            $this->completedSale
+        );
+    }
+
+    public function closeSaleCompletedModal(): void
+    {
+        $this->showSaleCompletedModal = false;
+
+        $this->completedSale = [];
+
+        $this->changeDue = 0;
+
+        $this->search = '';
+        $this->barcode = '';
+
+        // Optional: place cursor back in the barcode/search field
+        $this->dispatch('focus-barcode');
     }
 
 }

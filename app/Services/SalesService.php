@@ -187,7 +187,7 @@ class SalesService
 
         $tax = collect($cart)->sum('tax');
 
-        $total = $subtotal - $discount + $tax;
+        $total = $subtotal - $discount;
 
         return Sale::create([
 

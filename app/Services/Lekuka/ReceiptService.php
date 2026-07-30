@@ -7,132 +7,163 @@ use App\Models\LekukaReceipt;
 use App\Models\Sale;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use RuntimeException;
+use Throwable;
 
 class ReceiptService
 {
     public function __construct(
         protected LekukaClient $client,
         protected FiscalPeriodService $fiscal,
-        protected ReceiptPayloadBuilder $builder
+        protected ReceiptPayloadBuilder $builder,
     ) {
     }
 
+    /**
+     * Submit a sale to Lekuka and fiscalize it.
+     */
     public function submit(
         Sale $sale,
-        LekukaDevice $device
-    ): LekukaReceipt {
+        LekukaDevice $device,
+    ): Sale {
 
         return DB::transaction(function () use ($sale, $device) {
-
-            /*
-             |--------------------------------------------------------------------------
-             | Correlation
-             |--------------------------------------------------------------------------
-             */
 
             $correlationId = (string) Str::uuid();
 
             /*
-             |--------------------------------------------------------------------------
-             | Ensure Fiscal Day
-             |--------------------------------------------------------------------------
-             */
+            |--------------------------------------------------------------------------
+            | Ensure Fiscal Day
+            |--------------------------------------------------------------------------
+            */
 
-            $day = $this->fiscal
-                ->ensureOpen($device);
-
-            /*
-             |--------------------------------------------------------------------------
-             | Build Payload
-             |--------------------------------------------------------------------------
-             */
-
-            $payload = $this->builder
-                ->build($sale, $day);
+            $day = $this->fiscal->ensureOpen($device);
 
             /*
-             |--------------------------------------------------------------------------
-             | Submit Receipt
-             |--------------------------------------------------------------------------
-             */
+            |--------------------------------------------------------------------------
+            | Build Receipt Payload
+            |--------------------------------------------------------------------------
+            */
 
-            $response = $this->client->securePost(
-
+            $payload = $this->builder->build(
+                sale: $sale,
+                fiscalDay: $day,
                 device: $device,
-
-                endpoint: "/Device/v1/SubmitReceipt",
-
-                payload: $payload,
-
-                action: "SUBMIT_RECEIPT",
-
-                correlationId: $correlationId
-
             );
 
-            $data = $response->json();
+            try {
 
-            /*
-             |--------------------------------------------------------------------------
-             | Save Receipt
-             |--------------------------------------------------------------------------
-             */
+                /*
+                |--------------------------------------------------------------------------
+                | Submit Receipt
+                |--------------------------------------------------------------------------
+                */
 
-            $receipt = LekukaReceipt::create([
+                $response = $this->client->securePost(
 
-                'company_id' => $sale->company_id,
+                    device: $device,
 
-                'branch_id' => $sale->branch_id,
+                    endpoint: '"/Device/v2/{$device->device_id}/SubmitReceipt"',
 
-                'device_id' => $device->id,
+                    payload: $payload,
 
-                'sale_id' => $sale->id,
+                    action: 'SUBMIT_RECEIPT',
 
-                'correlation_id' => $correlationId,
+                    correlationId: $correlationId,
 
-                'receipt_number' => $data['receiptNumber'] ?? null,
+                );
 
-                'receipt_global_no' => $data['receiptGlobalNo'] ?? null,
+                $response->throw();
 
-                'receipt_counter' => $data['receiptCounter'] ?? null,
+                $data = $response->json();
 
-                'fiscal_day_no' => $day->fiscal_day_no,
+                /*
+                |--------------------------------------------------------------------------
+                | Save Fiscal Receipt
+                |--------------------------------------------------------------------------
+                */
 
-                'qr_code' => $data['qrCode'] ?? null,
+                $receipt = LekukaReceipt::create([
 
-                'verification_code' => $data['verificationCode'] ?? null,
+                    'company_id' => $sale->company_id,
 
-                'server_signature' => $data['signature'] ?? null,
+                    'branch_id' => $sale->branch_id,
 
-                'status' => 'SUBMITTED',
+                    'device_id' => $device->id,
 
-                'request' => $payload,
+                    'sale_id' => $sale->id,
 
-                'response' => $data,
+                    'correlation_id' => $correlationId,
 
-                'submitted_at' => now(),
+                    'receipt_number' => $data['receiptNumber'] ?? null,
 
-            ]);
+                    'receipt_global_no' => $data['receiptGlobalNo'] ?? null,
 
-            /*
-             |--------------------------------------------------------------------------
-             | Update Sale
-             |--------------------------------------------------------------------------
-             */
+                    'receipt_counter' => $data['receiptCounter'] ?? null,
 
-            $sale->update([
+                    'fiscal_day_no' => $day->fiscal_day_no,
 
-                'submitted_to_lekuka' => true,
+                    'qr_code' => $data['qrCode'] ?? null,
 
-                'lekuka_receipt_id' => $receipt->id,
+                    'verification_code' => $data['verificationCode'] ?? null,
 
-                'qr_code' => $receipt->qr_code
+                    'server_signature' => $data['signature'] ?? null,
 
-            ]);
+                    'status' => 'SUBMITTED',
 
-            return $receipt;
+                    'request' => $payload,
+
+                    'response' => $data,
+
+                    'submitted_at' => now(),
+
+                ]);
+
+                /*
+                |--------------------------------------------------------------------------
+                | Update Sale
+                |--------------------------------------------------------------------------
+                */
+
+                $sale->update([
+
+                    'submitted_to_lekuka' => true,
+
+                    'lekuka_receipt_id' => $receipt->id,
+
+                    'receipt_no' => $receipt->receipt_number,
+
+                    'receipt_global_no' => $receipt->receipt_global_no,
+
+                    'receipt_counter' => $receipt->receipt_counter,
+
+                    'fiscal_day_no' => $receipt->fiscal_day_no,
+
+                    'verification_code' => $receipt->verification_code,
+
+                    'qr_code' => $receipt->qr_code,
+
+                    'lekuka_status' => 'SUBMITTED',
+
+                    'submitted_at' => now(),
+
+                ]);
+
+            } catch (Throwable $e) {
+
+                $sale->update([
+
+                    'submitted_to_lekuka' => false,
+
+                    'lekuka_status' => 'FAILED',
+
+                ]);
+
+                throw $e;
+            }
+
+            return $sale->fresh();
 
         });
     }
+
 }

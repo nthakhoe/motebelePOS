@@ -1,6 +1,5 @@
-
 <x-filament-panels::page>
-    
+
     <link rel="stylesheet" href="{{ asset('css/pos.css') }}">
 
     <div class="pos-wrapper">
@@ -20,5 +19,11 @@
         @include('pos.footer')
 
     </div>
-<x-filament-actions::modals />
+
+    {{-- Sale Completed Modal --}}
+    @include('pos.modals.sale-completed')
+
+    {{-- Filament Action Modals --}}
+    <x-filament-actions::modals />
+
 </x-filament-panels::page>
