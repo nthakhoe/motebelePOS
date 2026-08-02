@@ -20,41 +20,28 @@ class LekukaClient
     {
     }
 
-    protected function client(
-        ?LekukaDevice $device = null
-    ): PendingRequest {
-
+    protected function client(?LekukaDevice $device = null): PendingRequest
+    {
         $client = Http::baseUrl(config('lekuka.base_url'))
             ->acceptJson()
             ->contentType('application/json')
             ->timeout(config('lekuka.timeout'));
 
-        /*
-        |--------------------------------------------------------------------------
-        | Public endpoints
-        |--------------------------------------------------------------------------
-        */
+        if ($device) {
+            $client = $client->withHeaders([
+                'DeviceModelName'      => $device->device_model,
+                'DeviceModelVersion' => $device->device_model_version,
+            ]);
+        }
 
         if ($device === null) {
             return $client;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Protected endpoints
-        |--------------------------------------------------------------------------
-        */
-
         return $client->withOptions([
-
-            'cert' => $this->certificates
-                ->getCertificatePath($device),
-
-            'ssl_key' => $this->certificates
-                ->getPrivateKeyPath($device),
-
-            // TEMPORARY - for testing only
-            'verify' => false,
+            'cert'    => $this->certificates->getCertificatePath($device),
+            'ssl_key' => $this->certificates->getPrivateKeyPath($device),
+            'verify'  => false,
         ]);
     }
 
@@ -90,6 +77,8 @@ class LekukaClient
     ): Response {
 
         $start = microtime(true);
+
+        $client = $this->client($device);
 
         $response = $this->client($device)
             ->send(
@@ -216,7 +205,7 @@ class LekukaClient
             'DeviceModelName' =>
                 config('services.lekuka.device_model'),
 
-            'DeviceModelVersionNo' =>
+            'DeviceModelVersion' =>
                 config('services.lekuka.device_model_version'),
 
         ]);

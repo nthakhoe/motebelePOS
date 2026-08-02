@@ -23,7 +23,7 @@ class ConfigurationService
 
                 device: $device,
 
-                endpoint: "/Device/v1/GetConfig",
+                endpoint: "/Device/v1/{$device->device_id}/GetConfig",
 
                 action: "GET_CONFIGURATION"
 

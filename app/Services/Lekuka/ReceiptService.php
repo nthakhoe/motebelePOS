@@ -37,7 +37,7 @@ class ReceiptService
             */
 
             $day = $this->fiscal->ensureOpen($device);
-
+            dd($day);
             /*
             |--------------------------------------------------------------------------
             | Build Receipt Payload
@@ -62,7 +62,7 @@ class ReceiptService
 
                     device: $device,
 
-                    endpoint: '"/Device/v2/{$device->device_id}/SubmitReceipt"',
+                    endpoint: "/Device/v2/{$device->device_id}/SubmitReceipt",
 
                     payload: $payload,
 

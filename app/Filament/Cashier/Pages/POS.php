@@ -445,12 +445,15 @@ class POS extends Page implements HasActions
                     $sale = app(ReceiptService::class)->submit($sale, $device);
 
                 } catch (\Throwable $e) {
-                dd(
-                        $e->getMessage(),
-                        $e->getFile(),
-                        $e->getLine(),
-                        $e->getTraceAsString()
-                    );
+
+                    report($e);
+
+                    Notification::make()
+                        ->danger()
+                        ->title('Fiscalisation Failed')
+                        ->body($e->getMessage())
+                        ->persistent()
+                        ->send();
 
                 }
 

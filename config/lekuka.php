@@ -4,7 +4,7 @@ return [
 
     'base_url' => env('LEKUKA_BASE_URL'),
 
-    'device_model_name' => env('LEKUKA_DEVICE_MODEL_NAME'),
+    'device_model' => env('LEKUKA_DEVICE_MODEL_NAME'),
 
     'device_model_version' => env('LEKUKA_DEVICE_MODEL_VERSION'),
 
