@@ -4,14 +4,20 @@ namespace App\Services\Lekuka;
 
 use App\Models\LekukaDevice;
 use App\Models\LekukaFiscalDay;
+use App\Models\LekukaReceipt;
 use App\Models\Sale;
 
 class ReceiptPayloadBuilder
 {
     public function __construct(
+        protected ReceiptCanonicalizer $canonicalizer,
         protected SignatureService $signature,
-    ) {}
+    ) {
+    }
 
+    /**
+     * Build Lekuka receipt payload.
+     */
     public function build(
         Sale $sale,
         LekukaFiscalDay $day,
@@ -33,6 +39,9 @@ class ReceiptPayloadBuilder
             'receiptCounter' => $device->last_receipt_counter + 1,
 
             'receiptGlobalNo' => $device->last_global_receipt_no + 1,
+
+            // Uncomment if required by the latest SubmitReceipt specification
+            // 'fiscalDayNo' => $day->fiscal_day_no,
 
             'invoiceNo' => $sale->sale_number,
 
@@ -61,12 +70,16 @@ class ReceiptPayloadBuilder
         |--------------------------------------------------------------------------
         */
 
-        if ($sale->customer && $sale->customer->customer_code !== 'WALK-IN') {
+        if (
+            $sale->customer &&
+            $sale->customer->customer_code !== 'WALK-IN'
+        ) {
 
             $payload['buyerData'] = [
 
                 'buyerRegisterName' => trim(
-                    $sale->customer->first_name.' '.$sale->customer->last_name
+                    $sale->customer->first_name . ' ' .
+                    $sale->customer->last_name
                 ),
 
                 'buyerTIN' => $sale->customer->tin,
@@ -111,7 +124,7 @@ class ReceiptPayloadBuilder
 
         /*
         |--------------------------------------------------------------------------
-        | Taxes
+        | Receipt Taxes
         |--------------------------------------------------------------------------
         */
 
@@ -133,10 +146,9 @@ class ReceiptPayloadBuilder
 
         /*
         |--------------------------------------------------------------------------
-        | Payments
+        | Receipt Payments
         |--------------------------------------------------------------------------
         */
-
         foreach ($sale->payments as $payment) {
 
             $payload['receiptPayments'][] = [
@@ -163,16 +175,60 @@ class ReceiptPayloadBuilder
 
         /*
         |--------------------------------------------------------------------------
+        | Previous Receipt Hash
+        |--------------------------------------------------------------------------
+        */
+
+        $previousHash = LekukaReceipt::where(
+                'device_id',
+                $device->id
+            )
+            ->orderByDesc('receipt_counter')
+            ->value('device_hash');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Canonical Receipt
+        |--------------------------------------------------------------------------
+        */
+
+        $canonical = $this->canonicalizer->build(
+            payload: $payload,
+            device: $device,
+            previousReceiptHash: $previousHash,
+        );
+
+        /*
+        |--------------------------------------------------------------------------
         | Device Signature
         |--------------------------------------------------------------------------
         */
 
-        $payload['receiptDeviceSignature'] = $this->signature
-            ->signReceipt(
-                $payload,
-                $device
-            );
+        $signature = $this->signature->sign(
+            device: $device,
+            canonicalData: $canonical,
+        );
 
-        return $payload;
+        $payload['receiptDeviceSignature'] = $signature;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return Complete Receipt Package
+        |--------------------------------------------------------------------------
+        */
+
+        return [
+
+            'payload' => [
+
+                'receipt' => $payload,
+
+            ],
+
+            'signature' => $signature,
+
+            'canonical' => $canonical,
+
+        ];
     }
 }

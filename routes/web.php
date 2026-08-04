@@ -2,6 +2,16 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Models\Sale;
+use App\Services\ReceiptPrinter;
+
+Route::get('/test-receipt/{sale}', function (Sale $sale, ReceiptPrinter $printer) {
+
+    $receipt = $printer->build($sale);
+
+    return view('receipts.thermal', compact('receipt'));
+
+});
 
 Route::get('/', function () {
     return view('welcome');

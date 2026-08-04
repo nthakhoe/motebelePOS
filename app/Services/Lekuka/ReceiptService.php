@@ -22,11 +22,15 @@ class ReceiptService
      * Submit a sale to Lekuka and fiscalize it.
      */
     public function submit(
-        Sale $sale,
-        LekukaDevice $device,
+    Sale $sale,
+    LekukaDevice $device,
     ): Sale {
 
         return DB::transaction(function () use ($sale, $device) {
+
+            $device = LekukaDevice::whereKey($device->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
             $correlationId = (string) Str::uuid();
 
@@ -37,18 +41,25 @@ class ReceiptService
             */
 
             $day = $this->fiscal->ensureOpen($device);
-            dd($day);
+
+            // Refresh device to get latest counters after status synchronization
+            $device->refresh();
+
             /*
             |--------------------------------------------------------------------------
-            | Build Receipt Payload
+            | Build Receipt Payload & Signature
             |--------------------------------------------------------------------------
             */
 
-            $payload = $this->builder->build(
+            $receiptData = $this->builder->build(
                 sale: $sale,
-                fiscalDay: $day,
+                day: $day,
                 device: $device,
             );
+
+            $payload = $receiptData['payload'];
+
+            $signature = $receiptData['signature'];
 
             try {
 
@@ -57,7 +68,6 @@ class ReceiptService
                 | Submit Receipt
                 |--------------------------------------------------------------------------
                 */
-
                 $response = $this->client->securePost(
 
                     device: $device,
@@ -75,7 +85,7 @@ class ReceiptService
                 $response->throw();
 
                 $data = $response->json();
-
+                dd($data);
                 /*
                 |--------------------------------------------------------------------------
                 | Save Fiscal Receipt
@@ -108,6 +118,10 @@ class ReceiptService
 
                     'server_signature' => $data['signature'] ?? null,
 
+                    'device_hash' => $signature['hash'],
+
+                    'device_signature' => $signature['signature'],
+
                     'status' => 'SUBMITTED',
 
                     'request' => $payload,
@@ -117,6 +131,18 @@ class ReceiptService
                     'submitted_at' => now(),
 
                 ]);
+
+                /*
+                |--------------------------------------------------------------------------
+                | Update Device Counters
+                |--------------------------------------------------------------------------
+                */
+
+                $device->increment('last_receipt_counter');
+
+                $device->increment('last_global_receipt_no');
+
+                $device->refresh();
 
                 /*
                 |--------------------------------------------------------------------------

@@ -5,6 +5,7 @@ namespace App\Services\Lekuka;
 use App\Models\LekukaDevice;
 use App\Models\LekukaFiscalDay;
 use Illuminate\Support\Str;
+use Exception;
 
 class FiscalPeriodService
 {
@@ -35,6 +36,7 @@ class FiscalPeriodService
         );
 
         $data = $response->json();
+        
 
         if (
             $response->status() === 422 &&
@@ -122,47 +124,35 @@ class FiscalPeriodService
      */
     public function ensureOpen(LekukaDevice $device): LekukaFiscalDay
     {
-        // Check if we already have an open fiscal day locally
-        $localDay = LekukaFiscalDay::where('device_id', $device->id)
-            ->where('status', 'OPEN')
-            ->latest()
-            ->first();
+        $status = $this->status($device);
 
-        if ($localDay) {
-            return $localDay;
-        }
+        switch ($status['fiscalDayStatus']) {
 
-        try {
-            // No local record, try opening a new fiscal day
-            return $this->open($device);
+            case 'FiscalDayOpened':
 
-        } catch (\Throwable $e) {
+                return $this->sync($device, $status);
 
-            $response = json_decode($e->getMessage(), true);
+            case 'FiscalDayClosed':
 
-            // Lekuka says a fiscal day is already open
-            if (
-                is_array($response) &&
-                ($response['errorCode'] ?? null) === 'FISC01'
-            ) {
+                return $this->open($device);
 
-                /*
-                 * Synchronize local database with Lekuka.
-                 * We don't know the fiscalDayNo because the API
-                 * doesn't return it in this error response.
-                 */
+            case 'FiscalDayCloseInitiated':
 
-                return LekukaFiscalDay::create([
-                    'company_id'    => $device->company_id,
-                    'branch_id'     => $device->branch_id,
-                    'device_id'     => $device->id,
-                    'fiscal_day_no' => null, // update later when available
-                    'opened_at'     => now(),
-                    'status'        => 'OPEN',
-                ]);
-            }
+                throw new \RuntimeException(
+                    'Fiscal day closing is still in progress.'
+                );
 
-            throw $e;
+            case 'FiscalDayCloseFailed':
+
+                throw new \RuntimeException(
+                    'Previous fiscal day failed to close.'
+                );
+
+            default:
+
+                throw new \RuntimeException(
+                    'Unknown fiscal day status: '.$status['fiscalDayStatus']
+                );
         }
     }
 
@@ -174,5 +164,43 @@ class FiscalPeriodService
     ): bool {
 
         return $this->current($device) !== null;
+    }
+
+    public function status(LekukaDevice $device): array
+    {
+        $response = $this->client->secureGet(
+            device: $device,
+            endpoint: "/Device/v1/{$device->device_id}/GetStatus",
+            action: 'GET_STATUS',
+            correlationId: (string) Str::uuid(),
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function sync(
+        LekukaDevice $device,
+        array $status
+    ): LekukaFiscalDay {
+
+        return LekukaFiscalDay::updateOrCreate(
+
+            [
+                'device_id'     => $device->id,
+                'fiscal_day_no' => $status['lastFiscalDayNo'],
+            ],
+
+            [
+                'company_id' => $device->company_id,
+                'branch_id'  => $device->branch_id,
+
+                'status' => 'OPEN',
+
+                'response' => $status,
+            ]
+
+        );
     }
 }

@@ -2,18 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Sale;
+use App\Models\Payment;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Exception;
+use Illuminate\Support\Facades\DB;
 
 class PaymentService
 {
-    /**
-     * Record payment for a sale.
-     */
     public function recordPayment(
         Sale $sale,
         int $paymentMethodId,
@@ -37,62 +34,60 @@ class PaymentService
             $paymentMethod = PaymentMethod::findOrFail($paymentMethodId);
 
             if ($amountReceived < $sale->total) {
-
                 throw new Exception(
                     'Amount received is less than the sale total.'
                 );
-
             }
 
             $change = $amountReceived - $sale->total;
 
             $payment = Payment::create([
 
-                'company_id' => $sale->company_id,
+                'company_id'         => $sale->company_id,
 
-                'branch_id' => $sale->branch_id,
+                'branch_id'          => $sale->branch_id,
 
-                'sale_id' => $sale->id,
+                'sale_id'            => $sale->id,
 
-                'payment_method_id' => $paymentMethod->id,
+                'payment_method_id'  => $paymentMethod->id,
 
-                'user_id' => $cashier->id,
+                'user_id'            => $cashier->id,
 
-                'amount_due' => $sale->total,
+                'amount_due'         => $sale->total,
 
-                'amount_received' => $amountReceived,
+                'amount_received'    => $amountReceived,
 
-                'amount_paid' => $sale->total,
+                'amount_paid'        => $sale->total,
 
-                'change_amount' => $change,
+                'change_amount'      => $change,
 
-                'reference_number' => $referenceNumber,
+                'reference_number'   => $referenceNumber,
 
                 'authorization_code' => $authorizationCode,
 
-                'status' => 'Completed',
+                'status'             => 'Completed',
 
-                'payment_date' => now(),
+                'payment_date'       => now(),
 
-                'remarks' => $remarks,
+                'remarks'            => $remarks,
 
             ]);
 
             $sale->update([
 
-                'amount_paid' => $sale->total,
+                'amount_paid'       => $sale->total,
 
-                'change' => $change,
+                'change'            => $change,
 
-                'status' => 'Completed',
+                'status'            => 'Completed',
 
-                'completed_at' => now(),
+                'completed_at'      => now(),
 
                 'payment_method_id' => $paymentMethod->id,
 
             ]);
 
-            return $payment;
+            return $payment->load('paymentMethod');
 
         });
 

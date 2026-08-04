@@ -15,10 +15,7 @@ class TaxService
 
         $subtotal = $price * $qty;
 
-        $tax = round(
-            $subtotal * ($rate / 100),
-            2
-        );
+        $tax = round($subtotal * ($rate / 100),2);
 
         return [
 

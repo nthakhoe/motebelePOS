@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\SaleItem;
 use App\Services\InventoryService;
 use App\Services\PaymentService;
+use App\Services\Lekuka\receiptService;
 
 class SalesService
 {
@@ -91,8 +92,11 @@ class SalesService
         ) {
 
             /*
-             * Stage 1
-             */
+            |--------------------------------------------------------------------------
+            | Stage 1: Create Sale
+            |--------------------------------------------------------------------------
+            */
+
             $sale = $this->createSale(
                 cart: $cart,
                 customerId: $customerId,
@@ -101,16 +105,22 @@ class SalesService
             );
 
             /*
-             * Stage 2
-             */
+            |--------------------------------------------------------------------------
+            | Stage 2: Create Sale Items
+            |--------------------------------------------------------------------------
+            */
+
             $this->createSaleItems(
                 sale: $sale,
                 cart: $cart,
             );
 
             /*
-             * Stage 3
-             */
+            |--------------------------------------------------------------------------
+            | Stage 3: Update Inventory
+            |--------------------------------------------------------------------------
+            */
+
             $this->updateInventory(
                 sale: $sale,
                 cart: $cart,
@@ -118,52 +128,40 @@ class SalesService
             );
 
             /*
-             * Stage 4
-             */
+            |--------------------------------------------------------------------------
+            | Stage 4: Record Payment
+            |--------------------------------------------------------------------------
+            */
+
             $this->paymentService->recordPayment(
+
                 sale: $sale,
-                paymentMethodId: 1,
-                amountReceived: $sale['amount_paid'],
-                referenceNumber: $sale['reference_number'] ?? null,
-                authorizationCode: $sale['provider'] ?? null,
-                cashier: auth()->user(),
+
+                paymentMethodId: $paymentMethodId,
+
+                amountReceived: $amountReceived,
+
+                referenceNumber: $sale->reference_number ?? null,
+
+                authorizationCode: $sale->provider ?? null,
+
+                cashier: $cashier,
+
             );
 
-            return $sale;
+            /*
+            |--------------------------------------------------------------------------
+            | Return Fresh Sale With Relationships
+            |--------------------------------------------------------------------------
+            */
+
+            return $sale->fresh([
+                'customer',
+                'items.product',
+                'payments.paymentMethod',
+            ]);
+
         });
-
-        /*
-        |--------------------------------------------------------------------------
-        | Transaction has been committed.
-        | Safe to queue the fiscal receipt.
-        |--------------------------------------------------------------------------
-        */
-
-        $device = $this->deviceService->getRegisteredDeviceForBranch($sale->branch_id);
-
-        SubmitReceiptJob::dispatch(
-            $sale->id,
-            $device->id
-        )->onQueue('lekuka');
-
-        $canonical = $this->receiptSignatureBuilder->build(
-            $sale,
-            $payload,
-            $previousReceiptHash
-        );
-
-        $payload['receiptDeviceSignature'] =
-            $this->signatureService->sign(
-                $device,
-                $canonical
-            );
-
-        SubmitReceiptJob::dispatch(
-            $sale->id,
-            $device->id
-        )->onQueue('lekuka');
-
-        return $sale;
     }
 
     public function getRegisteredDeviceForBranch(int $branchId): LekukaDevice

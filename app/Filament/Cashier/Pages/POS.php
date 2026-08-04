@@ -197,7 +197,7 @@ class POS extends Page implements HasActions
 
                 'discount' => 0,
 
-                'tax' => 15,
+                'tax' => round((float) $product->selling_price * (15 / 100),2),
 
                 'line_total' => (float) $product->selling_price,
 
