@@ -85,7 +85,7 @@ class ReceiptService
                 $response->throw();
 
                 $data = $response->json();
-                dd($data);
+                //dd($data);
                 /*
                 |--------------------------------------------------------------------------
                 | Save Fiscal Receipt
