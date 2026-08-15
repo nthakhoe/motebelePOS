@@ -67,8 +67,13 @@ class ReceiptCanonicalizer
         | 7. Taxes
         |--------------------------------------------------------------------------
         */
-
         $taxes = collect($payload['receiptTaxes'])
+        ->sortBy([
+            ['taxID', 'asc'],
+            ['taxCode', 'asc'],
+        ])
+        ->values();
+        /*$taxes = collect($payload['receiptTaxes'])
             ->sort(function ($a, $b) {
 
                 if ($a['taxID'] === $b['taxID']) {
@@ -79,7 +84,7 @@ class ReceiptCanonicalizer
                 }
 
                 return $a['taxID'] <=> $b['taxID'];
-            });
+            });*/
 
         foreach ($taxes as $tax) {
 
@@ -94,13 +99,10 @@ class ReceiptCanonicalizer
                 )
                 : '';
 
-            $canonical .= (int) round(
-                $tax['taxAmount'] * 100
-            );
+            $canonical .= (string) ((int) round($tax['taxAmount'] * 100));
 
-            $canonical .= (int) round(
-                $tax['salesAmountWithTax'] * 100
-            );
+            $canonical .= (string) ((int) round($tax['salesAmountWithTax'] * 100));
+
         }
 
         /*

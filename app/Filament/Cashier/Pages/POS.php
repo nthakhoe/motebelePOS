@@ -17,6 +17,7 @@ use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use App\Services\SalesService;
+use App\Services\RegisterSessionService;
 use Filament\Notifications\Notification;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
@@ -197,7 +198,7 @@ class POS extends Page implements HasActions
 
                 'discount' => 0,
 
-                'tax' => round((float) $product->selling_price * (15 / 100),2),
+                'tax' => 15,
 
                 'line_total' => (float) $product->selling_price,
 
@@ -222,7 +223,6 @@ class POS extends Page implements HasActions
                 $item['quantity'],
                 $item['tax']
             );
-
             $this->subtotal += $result['subtotal'];
 
             $this->discount += $item['discount'];
@@ -438,7 +438,7 @@ class POS extends Page implements HasActions
 
                 );
 
-                try {
+                /*try {
 
                     $device = LekukaDevice::where('registered', 1)->firstOrFail();
 
@@ -455,7 +455,7 @@ class POS extends Page implements HasActions
                         ->persistent()
                         ->send();
 
-                }
+                }*/
 
                 $this->completedSale = [
                     'id'          => $sale->id,

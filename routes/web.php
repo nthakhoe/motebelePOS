@@ -4,6 +4,16 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Models\Sale;
 use App\Services\ReceiptPrinter;
+use App\Http\Controllers\Cashier\SaleReceiptController;
+
+Route::middleware(['auth'])->group(function () {
+
+    Route::get(
+        '/cashier/sales/{sale}/receipt',
+        SaleReceiptController::class
+    )->name('cashier.sales.receipt');
+
+});
 
 Route::get('/test-receipt/{sale}', function (Sale $sale, ReceiptPrinter $printer) {
 

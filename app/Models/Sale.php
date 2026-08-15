@@ -62,6 +62,10 @@ class Sale extends Model
     | Relationships
     |--------------------------------------------------------------------------
     */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
 
     public function company(): BelongsTo
     {
@@ -75,7 +79,7 @@ class Sale extends Model
 
     public function register(): BelongsTo
     {
-        return $this->belongsTo(Register::class);
+        return $this->belongsTo(RegisterSession::class);
     }
 
     public function cashier(): BelongsTo
@@ -151,5 +155,20 @@ class Sale extends Model
     public function isRefunded(): bool
     {
         return $this->status === 'refunded';
+    }
+
+    public function getRefundedAmountAttribute(): float
+    {
+        return (float) $this->refunds()
+            ->where('status', 'completed')
+            ->sum('total_amount');
+    }
+
+    public function getRefundableAmountAttribute(): float
+    {
+        return max(
+            0,
+            (float) $this->total - $this->refunded_amount
+        );
     }
 }

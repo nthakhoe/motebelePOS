@@ -55,8 +55,7 @@ class CashierPanelProvider extends PanelProvider
             )
 
             ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
+
             ])
 
             ->middleware([

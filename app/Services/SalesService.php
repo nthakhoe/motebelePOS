@@ -38,7 +38,15 @@ class SalesService
 
             $discount = (float) ($item['discount'] ?? 0);
 
-            $taxAmount = (float) ($item['tax'] ?? 0);
+            $tax = app(\App\Services\TaxService::class)
+                ->calculateInclusive(
+                    price: $unitPrice,
+                    qty: $quantity,
+                    rate: (float) ($product->tax_rate ?? 0),
+                );
+
+            $taxAmount = $tax['tax'];
+
 
             $lineTotal = (float) $item['line_total'];
 
@@ -151,6 +159,14 @@ class SalesService
 
             /*
             |--------------------------------------------------------------------------
+            | Stage 5: Record Session
+            |--------------------------------------------------------------------------
+            */
+
+            app(RegisterSessionService::class)->recordSale($sale);
+
+            /*
+            |--------------------------------------------------------------------------
             | Return Fresh Sale With Relationships
             |--------------------------------------------------------------------------
             */
@@ -179,13 +195,35 @@ class SalesService
         User $cashier,
     ): Sale {
 
-        $subtotal = collect($cart)->sum('line_total');
+        $subtotal = 0.00;
+        $vat = 0.00;
+        $discount = 0.00;
+        $total = 0.00;
 
-        $discount = collect($cart)->sum('discount');
+        $taxService = app(\App\Services\TaxService::class);
 
-        $tax = collect($cart)->sum('tax');
+        foreach ($cart as $item) {
 
-        $total = $subtotal - $discount;
+            $result = $taxService->calculateInclusive(
+                price: (float) $item['price'],
+                qty: (float) $item['quantity'],
+                rate: (float) $item['tax'],
+            );
+
+            $subtotal += $result['subtotal'];
+
+            $vat += $result['tax'];
+
+            $total += $result['total'];
+
+            $discount += (float) ($item['discount'] ?? 0);
+        }
+
+        $subtotal = round($subtotal, 2);
+        $vat = round($vat, 2);
+        $discount = round($discount, 2);
+
+        $total = round($total - $discount, 2);
 
         return Sale::create([
 
@@ -205,13 +243,13 @@ class SalesService
 
             'discount' => $discount,
 
-            'tax' => $tax,
+            'tax' => $vat,
 
             'total' => $total,
 
             'amount_paid' => $amountReceived,
 
-            'change' => $amountReceived - $total,
+            'change' => round($amountReceived - $total, 2),
 
             'sale_type' => 'Cash',
 
@@ -222,6 +260,7 @@ class SalesService
             'remarks' => null,
 
             'completed_at' => now(),
+
         ]);
     }
 

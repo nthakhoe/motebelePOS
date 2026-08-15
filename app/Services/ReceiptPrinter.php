@@ -30,7 +30,7 @@ class ReceiptPrinter
         ]);
 
         $receipt = $sale->lekukaReceipt;
-
+        
         return [
 
             /*

@@ -3,6 +3,7 @@
 namespace App\Services\Lekuka;
 
 use App\Models\LekukaDevice;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class SignatureService

@@ -39,10 +39,7 @@ class TaxService
 
         $total = $price * $qty;
 
-        $tax = round(
-            $total - ($total / (1 + ($rate / 100))),
-            2
-        );
+        $tax = round($total - ($total / (1 + ($rate / 100))),2);
 
         return [
 
