@@ -54,6 +54,11 @@ class CashierPanelProvider extends PanelProvider
                 for: 'App\Filament\Cashier\Widgets'
             )
 
+            ->renderHook(
+                'panels::head.end',
+                fn (): string => '<link rel="stylesheet" href="' . asset('css/cashier-dashboard.css') . '">'
+            )
+
             ->widgets([
 
             ])

@@ -217,12 +217,7 @@ class RefundService
             | Stage 4: Record Payment
             |--------------------------------------------------------------------------
             */
-            app(RegisterSessionService::class)
-                ->recordRefund(
-                    sale: $sale,
-                    refundAmount: $refund->total_amount,
-                    userId: $user->id,
-                );
+            
 
             /*
              * Determine whether this was a full or partial refund.
@@ -243,6 +238,12 @@ class RefundService
                 ]);
             }
 
+            app(RegisterSessionService::class)
+                ->recordRefund(
+                    sale: $sale,
+                    refundAmount: $refund->total_amount,
+                    userId: $user->id,
+                );
             /*
             |--------------------------------------------------------------------------
             | Restore refunded stock

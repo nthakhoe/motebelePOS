@@ -7,4 +7,6 @@ use Filament\Pages\Page;
 class CashierLogin extends Page
 {
     protected string $view = 'filament.cashier.pages.cashier-login';
+
+    protected static bool $shouldRegisterNavigation = false;
 }
