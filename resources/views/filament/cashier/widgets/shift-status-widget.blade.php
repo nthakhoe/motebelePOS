@@ -37,7 +37,7 @@
                     <div>
                         <span>Terminal</span>
                         <strong>
-                            {{ $session->terminal?->name ?? 'Terminal' }}
+                            {{ $session->terminal?->terminal_name ?? 'Terminal' }}
                         </strong>
                     </div>
 

@@ -2,9 +2,21 @@
 
 namespace App\Filament\Company\Pages;
 
-use Filament\Pages\Page;
+use App\Filament\Company\Widgets\CompanySalesOverview;
+use App\Filament\Company\Widgets\PaymentMethodBreakdown;
+use App\Filament\Company\Widgets\TopSellingProducts;
+use App\Filament\Company\Widgets\SalesTrend;
+use Filament\Pages\Dashboard as BaseDashboard;
 
-class Dashboard extends Page
+class Dashboard extends BaseDashboard
 {
-    protected string $view = 'filament.company.pages.dashboard';
+    public function getWidgets(): array
+    {
+        return [
+            CompanySalesOverview::class,
+            SalesTrend::class,
+            PaymentMethodBreakdown::class,
+            TopSellingProducts::class,
+        ];
+    }
 }

@@ -1,0 +1,1017 @@
+/* =========================================================
+   COMPANY DASHBOARD
+   Sales Overview Widget
+   ========================================================= */
+
+.company-sales-overview {
+    width: 100%;
+}
+
+/* ---------------------------------------------------------
+   Header
+   --------------------------------------------------------- */
+
+.company-dashboard-widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+}
+
+.company-dashboard-widget-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #111827;
+}
+
+.company-dashboard-widget-description {
+    margin: 4px 0 0;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.company-dashboard-widget-period {
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+
+/* ---------------------------------------------------------
+   KPI Grid
+   --------------------------------------------------------- */
+
+.company-sales-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+
+/* ---------------------------------------------------------
+   KPI Card
+   --------------------------------------------------------- */
+
+.company-sales-kpi-card {
+    position: relative;
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 4px 12px rgba(15, 23, 42, 0.04);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.company-sales-kpi-card:hover {
+    transform: translateY(-2px);
+
+    border-color: #cbd5e1;
+
+    box-shadow:
+        0 4px 8px rgba(15, 23, 42, 0.06),
+        0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+
+/* ---------------------------------------------------------
+   KPI Header
+   --------------------------------------------------------- */
+
+.company-sales-kpi-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.company-sales-kpi-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+
+/* ---------------------------------------------------------
+   KPI Icons
+   --------------------------------------------------------- */
+
+.company-sales-kpi-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 38px;
+    height: 38px;
+
+    flex-shrink: 0;
+
+    border-radius: 9px;
+}
+
+.company-sales-kpi-icon svg {
+    width: 19px;
+    height: 19px;
+}
+
+
+/* Primary - Sales */
+
+.company-sales-kpi-icon.sales {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+
+/* Net Sales */
+
+.company-sales-kpi-icon.net-sales {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+
+/* Refunds */
+
+.company-sales-kpi-icon.refunds {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+
+/* Transactions */
+
+.company-sales-kpi-icon.transactions {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+
+/* ---------------------------------------------------------
+   KPI Value
+   --------------------------------------------------------- */
+
+.company-sales-kpi-value {
+    margin-top: 2px;
+
+    font-size: 1.55rem;
+    line-height: 1.25;
+
+    font-weight: 700;
+    letter-spacing: -0.025em;
+
+    color: #111827;
+}
+
+
+/* ---------------------------------------------------------
+   KPI Description
+   --------------------------------------------------------- */
+
+.company-sales-kpi-description {
+    margin-top: 6px;
+
+    font-size: 0.78rem;
+    line-height: 1.4;
+
+    color: #64748b;
+}
+
+
+/* ---------------------------------------------------------
+   Responsive
+   --------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+
+    .company-sales-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 640px) {
+
+    .company-dashboard-widget-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .company-sales-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .company-sales-kpi-card {
+        padding: 16px;
+    }
+
+    .company-sales-kpi-value {
+        font-size: 1.4rem;
+    }
+
+}
+
+/* =========================================================
+   SALES TREND WIDGET
+   ========================================================= */
+
+.company-sales-trend {
+    width: 100%;
+    overflow: hidden;
+}
+
+
+/* ---------------------------------------------------------
+   Header
+   --------------------------------------------------------- */
+
+.company-sales-trend-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.company-sales-trend-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #111827;
+}
+
+.company-sales-trend-description {
+    margin: 4px 0 0;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+
+/* ---------------------------------------------------------
+   Summary
+   --------------------------------------------------------- */
+
+.company-sales-trend-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+}
+
+.company-sales-trend-summary-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.company-sales-trend-summary-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+
+/* ---------------------------------------------------------
+   Chart
+   --------------------------------------------------------- */
+
+.company-sales-chart {
+    width: 100%;
+}
+
+.company-sales-chart-container {
+    width: 100%;
+    height: 260px;
+    overflow: hidden;
+}
+
+.company-sales-chart-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+
+/* ---------------------------------------------------------
+   Grid
+   --------------------------------------------------------- */
+
+.company-sales-chart-grid-line {
+    stroke: #e2e8f0;
+    stroke-width: 1;
+    stroke-dasharray: 4 5;
+}
+
+.company-sales-chart-y-label {
+    fill: #94a3b8;
+    font-size: 10px;
+    font-family: inherit;
+}
+
+
+/* ---------------------------------------------------------
+   Area
+   --------------------------------------------------------- */
+
+.company-sales-chart-area {
+    fill: rgba(22, 163, 74, 0.08);
+}
+
+
+/* ---------------------------------------------------------
+   Sales Line
+   --------------------------------------------------------- */
+
+.company-sales-chart-line {
+    fill: none;
+    stroke: #16a34a;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+
+/* ---------------------------------------------------------
+   Data Points
+   --------------------------------------------------------- */
+
+.company-sales-chart-point {
+    fill: #ffffff;
+    stroke: #16a34a;
+    stroke-width: 3;
+}
+
+
+/* ---------------------------------------------------------
+   X Axis
+   --------------------------------------------------------- */
+
+.company-sales-chart-x-label {
+    fill: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: inherit;
+}
+
+
+/* ---------------------------------------------------------
+   Daily Values
+   --------------------------------------------------------- */
+
+.company-sales-daily-values {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+
+    margin-top: 10px;
+    padding-top: 14px;
+
+    border-top: 1px solid #e2e8f0;
+}
+
+.company-sales-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.company-sales-day-date {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+.company-sales-day-value {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+
+/* ---------------------------------------------------------
+   Hover
+   --------------------------------------------------------- */
+
+.company-sales-chart-point {
+    transition:
+        r 0.15s ease,
+        stroke-width 0.15s ease;
+}
+
+.company-sales-chart-point:hover {
+    r: 7;
+    stroke-width: 4;
+}
+
+
+/* ---------------------------------------------------------
+   Responsive
+   --------------------------------------------------------- */
+
+@media (max-width: 768px) {
+
+    .company-sales-trend-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .company-sales-trend-summary {
+        align-items: flex-start;
+    }
+
+    .company-sales-chart-container {
+        height: 220px;
+    }
+
+    .company-sales-daily-values {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        row-gap: 12px;
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .company-sales-chart-container {
+        height: 200px;
+    }
+
+    .company-sales-day-value {
+        font-size: 0.7rem;
+    }
+
+}
+
+/* =========================================================
+   PAYMENT METHOD BREAKDOWN
+   ========================================================= */
+
+.company-payment-breakdown {
+    width: 100%;
+}
+
+
+/* ---------------------------------------------------------
+   Header
+   --------------------------------------------------------- */
+
+.company-payment-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.company-payment-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #111827;
+}
+
+.company-payment-description {
+    margin: 4px 0 0;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.company-payment-total {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111827;
+    white-space: nowrap;
+}
+
+
+/* ---------------------------------------------------------
+   Content
+   --------------------------------------------------------- */
+
+.company-payment-content {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    align-items: center;
+    gap: 24px;
+}
+
+
+/* ---------------------------------------------------------
+   Doughnut
+   --------------------------------------------------------- */
+
+.company-payment-chart-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.company-payment-chart {
+    width: 170px;
+    height: 170px;
+}
+
+.company-payment-segment {
+    transition:
+        opacity 0.2s ease,
+        stroke-width 0.2s ease;
+}
+
+.company-payment-segment:hover {
+    opacity: 0.8;
+    stroke-width: 27;
+}
+
+.company-payment-chart-label {
+    fill: #111827;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.company-payment-chart-subtitle {
+    fill: #64748b;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+
+/* ---------------------------------------------------------
+   Payment List
+   --------------------------------------------------------- */
+
+.company-payment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+
+.company-payment-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 11px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.company-payment-item:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.company-payment-item-left {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 9px;
+}
+
+.company-payment-indicator {
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+
+.company-payment-method-name {
+    overflow: hidden;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #334155;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.company-payment-count {
+    margin-top: 2px;
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.company-payment-item-right {
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.company-payment-amount {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.company-payment-percentage {
+    margin-top: 2px;
+    font-size: 0.7rem;
+    color: #64748b;
+}
+
+
+/* ---------------------------------------------------------
+   Empty State
+   --------------------------------------------------------- */
+
+.company-payment-empty {
+    display: flex;
+    min-height: 190px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.company-payment-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 42px;
+    height: 42px;
+
+    margin-bottom: 10px;
+
+    border-radius: 10px;
+
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.company-payment-empty-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.company-payment-empty-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.company-payment-empty-description {
+    margin-top: 4px;
+    font-size: 0.78rem;
+    color: #94a3b8;
+}
+
+
+/* ---------------------------------------------------------
+   Responsive
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+
+    .company-payment-content {
+        grid-template-columns: 150px minmax(0, 1fr);
+        gap: 18px;
+    }
+
+    .company-payment-chart {
+        width: 145px;
+        height: 145px;
+    }
+
+}
+
+
+@media (max-width: 640px) {
+
+    .company-payment-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .company-payment-content {
+        grid-template-columns: 1fr;
+    }
+
+    .company-payment-chart-wrapper {
+        margin-bottom: 6px;
+    }
+
+}
+
+/* =========================================================
+   TOP SELLING PRODUCTS
+   ========================================================= */
+
+.company-top-products {
+    width: 100%;
+}
+
+
+/* ---------------------------------------------------------
+   Header
+   --------------------------------------------------------- */
+
+.company-top-products-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.company-top-products-title {
+    margin: 0;
+
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+
+    color: #111827;
+}
+
+.company-top-products-description {
+    margin: 4px 0 0;
+
+    font-size: 0.875rem;
+
+    color: #64748b;
+}
+
+.company-top-products-period {
+    padding: 5px 10px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+
+    background: #f8fafc;
+
+    font-size: 0.72rem;
+    font-weight: 600;
+
+    color: #64748b;
+
+    white-space: nowrap;
+}
+
+
+/* ---------------------------------------------------------
+   Product List
+   --------------------------------------------------------- */
+
+.company-top-products-list {
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ---------------------------------------------------------
+   Product Row
+   --------------------------------------------------------- */
+
+.company-top-product-row {
+    display: grid;
+
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+
+    align-items: center;
+
+    gap: 12px;
+
+    min-height: 62px;
+
+    padding: 10px 0;
+
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.company-top-product-row:last-child {
+    border-bottom: 0;
+}
+
+
+/* ---------------------------------------------------------
+   Rank
+   --------------------------------------------------------- */
+
+.company-top-product-rank {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 30px;
+    height: 30px;
+
+    border-radius: 8px;
+
+    background: #f1f5f9;
+
+    font-size: 0.78rem;
+    font-weight: 700;
+
+    color: #64748b;
+}
+
+
+/* First place */
+
+.company-top-product-row:first-child
+.company-top-product-rank {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+
+/* Second place */
+
+.company-top-product-row:nth-child(2)
+.company-top-product-rank {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+
+/* Third place */
+
+.company-top-product-row:nth-child(3)
+.company-top-product-rank {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+
+/* ---------------------------------------------------------
+   Product Information
+   --------------------------------------------------------- */
+
+.company-top-product-info {
+    min-width: 0;
+}
+
+.company-top-product-name {
+    overflow: hidden;
+
+    font-size: 0.84rem;
+    font-weight: 600;
+
+    color: #334155;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.company-top-product-sales {
+    margin-top: 3px;
+
+    font-size: 0.72rem;
+
+    color: #94a3b8;
+}
+
+
+/* ---------------------------------------------------------
+   Quantity
+   --------------------------------------------------------- */
+
+.company-top-product-quantity {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-end;
+
+    min-width: 55px;
+}
+
+.company-top-product-quantity-value {
+    font-size: 0.88rem;
+    font-weight: 700;
+
+    color: #111827;
+}
+
+.company-top-product-quantity-label {
+    margin-top: 2px;
+
+    font-size: 0.68rem;
+
+    color: #94a3b8;
+}
+
+
+/* ---------------------------------------------------------
+   Empty State
+   --------------------------------------------------------- */
+
+.company-top-products-empty {
+    display: flex;
+
+    min-height: 210px;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+}
+
+.company-top-products-empty-icon {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 44px;
+    height: 44px;
+
+    margin-bottom: 10px;
+
+    border-radius: 10px;
+
+    background: #f1f5f9;
+
+    color: #64748b;
+}
+
+.company-top-products-empty-icon svg {
+    width: 21px;
+    height: 21px;
+}
+
+.company-top-products-empty-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+
+    color: #334155;
+}
+
+.company-top-products-empty-description {
+    max-width: 240px;
+
+    margin-top: 4px;
+
+    font-size: 0.78rem;
+
+    line-height: 1.5;
+
+    color: #94a3b8;
+}
+
+
+/* ---------------------------------------------------------
+   Hover
+   --------------------------------------------------------- */
+
+.company-top-product-row {
+    transition:
+        background-color 0.15s ease,
+        padding-left 0.15s ease,
+        padding-right 0.15s ease;
+}
+
+.company-top-product-row:hover {
+    padding-left: 6px;
+    padding-right: 6px;
+
+    border-radius: 8px;
+
+    background: #f8fafc;
+}
+
+
+/* ---------------------------------------------------------
+   Responsive
+   --------------------------------------------------------- */
+
+@media (max-width: 640px) {
+
+    .company-top-products-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .company-top-product-row {
+        grid-template-columns: 32px minmax(0, 1fr) auto;
+
+        gap: 9px;
+    }
+
+    .company-top-product-name {
+        font-size: 0.8rem;
+    }
+
+}

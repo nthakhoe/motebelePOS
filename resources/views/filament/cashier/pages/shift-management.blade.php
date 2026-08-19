@@ -2,235 +2,438 @@
 
     @if($this->session)
 
-        <div class="grid gap-6">
+        <div class="cashier-shift-management">
 
-            {{-- Current Shift --}}
-            <x-filament::section>
+            {{-- =====================================================
+                 CURRENT SHIFT
+                 ===================================================== --}}
+            <div class="cashier-shift-section">
 
-                <x-slot name="heading">
-                    Current Shift
-                </x-slot>
+                <div class="cashier-shift-section-header">
 
-                <x-slot name="description">
-                    {{ $this->session->session_number }}
-                </x-slot>
-
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-
-                    <div>
-                        <div class="text-sm text-gray-500">
-                            Opened
-                        </div>
-
-                        <div class="font-semibold">
-                            {{ $this->session->opened_at?->format('d M Y H:i') }}
-                        </div>
+                    <div class="cashier-shift-section-icon bg-success-100">
+                        <x-heroicon-o-clock class="text-success-600" />
                     </div>
 
                     <div>
-                        <div class="text-sm text-gray-500">
-                            Opening Cash
+                        <div class="cashier-shift-section-title">
+                            Current Shift
                         </div>
 
-                        <div class="font-semibold">
-                            M{{ number_format(
-                                (float) $this->session->opening_float,
-                                2
-                            ) }}
+                        <div class="cashier-shift-section-description">
+                            {{ $this->session->session_number }}
                         </div>
                     </div>
 
-                    <div>
-                        <div class="text-sm text-gray-500">
-                            Status
-                        </div>
-
-                        <div class="font-semibold text-success-600">
+                    <div style="margin-left: auto;">
+                        <span class="cashier-shift-status">
+                            <span class="cashier-shift-status-dot"></span>
                             OPEN
-                        </div>
+                        </span>
                     </div>
 
                 </div>
 
-            </x-filament::section>
+
+                <div class="cashier-shift-section-body">
+
+                    <div class="cashier-current-shift">
+
+                        {{-- Opened --}}
+                        <div>
+                            <span class="cashier-shift-info-label">
+                                Opened
+                            </span>
+
+                            <span class="cashier-shift-info-value">
+                                {{ $this->session->opened_at?->format('d M Y H:i') }}
+                            </span>
+                        </div>
 
 
-            {{-- Sales Summary --}}
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        {{-- Opening Cash --}}
+                        <div>
+                            <span class="cashier-shift-info-label">
+                                Opening Cash
+                            </span>
 
-                <x-filament::section>
+                            <span class="cashier-shift-info-value">
+                                M{{ number_format(
+                                    (float) $this->session->opening_float,
+                                    2
+                                ) }}
+                            </span>
+                        </div>
 
-                    <div class="text-sm text-gray-500">
-                        Cash Sales
+
+                        {{-- Session --}}
+                        <div>
+                            <span class="cashier-shift-info-label">
+                                Session
+                            </span>
+
+                            <span class="cashier-shift-info-value">
+                                {{ $this->session->session_number }}
+                            </span>
+                        </div>
+
+
+                        {{-- Cashier --}}
+                        <div>
+                            <span class="cashier-shift-info-label">
+                                Cashier
+                            </span>
+
+                            <span class="cashier-shift-info-value">
+                                {{ auth()->user()->name }}
+                            </span>
+                        </div>
+
                     </div>
 
-                    <div class="mt-1 text-2xl font-bold">
-                        M{{ number_format(
-                            (float) $this->session->cash_sales,
-                            2
-                        ) }}
-                    </div>
-
-                </x-filament::section>
-
-
-                <x-filament::section>
-
-                    <div class="text-sm text-gray-500">
-                        Gross Sales
-                    </div>
-
-                    <div class="mt-1 text-2xl font-bold">
-                        M{{ number_format(
-                            (float) $this->session->gross_sales,
-                            2
-                        ) }}
-                    </div>
-
-                </x-filament::section>
-
-
-                <x-filament::section>
-
-                    <div class="text-sm text-gray-500">
-                        Refunds
-                    </div>
-
-                    <div class="mt-1 text-2xl font-bold">
-                        M{{ number_format(
-                            (float) $this->session->refund_total,
-                            2
-                        ) }}
-                    </div>
-
-                </x-filament::section>
+                </div>
 
             </div>
 
 
-            {{-- Transaction Statistics --}}
-            <x-filament::section>
+            {{-- =====================================================
+                 SALES SUMMARY
+                 ===================================================== --}}
+            <div class="cashier-shift-section">
 
-                <x-slot name="heading">
-                    Shift Statistics
-                </x-slot>
+                <div class="cashier-shift-section-header">
 
-                <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
-
-                    <div>
-                        <div class="text-sm text-gray-500">
-                            Transactions
-                        </div>
-
-                        <div class="text-xl font-bold">
-                            {{ $this->session->transaction_count }}
-                        </div>
+                    <div class="cashier-shift-section-icon bg-primary-100">
+                        <x-heroicon-o-chart-bar class="text-primary-600" />
                     </div>
 
                     <div>
-                        <div class="text-sm text-gray-500">
-                            Receipts
+                        <div class="cashier-shift-section-title">
+                            Sales Summary
                         </div>
 
-                        <div class="text-xl font-bold">
-                            {{ $this->session->receipt_count }}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="text-sm text-gray-500">
-                            Refunds
-                        </div>
-
-                        <div class="text-xl font-bold">
-                            {{ $this->session->refund_count }}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="text-sm text-gray-500">
-                            Net Sales
-                        </div>
-
-                        <div class="text-xl font-bold">
-                            M{{ number_format(
-                                (float) $this->session->net_sales,
-                                2
-                            ) }}
+                        <div class="cashier-shift-section-description">
+                            Sales recorded during this shift
                         </div>
                     </div>
 
                 </div>
 
-            </x-filament::section>
 
+                <div class="cashier-shift-section-body">
 
-            {{-- Expected Cash --}}
-            <x-filament::section>
+                    <div class="cashier-shift-summary-grid">
 
-                <x-slot name="heading">
-                    Cash Position
-                </x-slot>
+                        {{-- Cash Sales --}}
+                        <div class="cashier-shift-summary-card">
 
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div class="cashier-shift-summary-label">
+                                Cash Sales
+                            </div>
 
-                    <div>
+                            <div class="cashier-shift-summary-value">
+                                M{{ number_format(
+                                    (float) $this->session->cash_sales,
+                                    2
+                                ) }}
+                            </div>
 
-                        <div class="text-sm text-gray-500">
-                            Opening Float
                         </div>
 
-                        <div class="text-xl font-bold">
-                            M{{ number_format(
-                                (float) $this->session->opening_float,
-                                2
-                            ) }}
+
+                        {{-- Gross Sales --}}
+                        <div class="cashier-shift-summary-card">
+
+                            <div class="cashier-shift-summary-label">
+                                Gross Sales
+                            </div>
+
+                            <div class="cashier-shift-summary-value">
+                                M{{ number_format(
+                                    (float) $this->session->gross_sales,
+                                    2
+                                ) }}
+                            </div>
+
                         </div>
 
-                    </div>
 
-                    <div>
+                        {{-- Refunds --}}
+                        <div class="cashier-shift-summary-card">
 
-                        <div class="text-sm text-gray-500">
-                            Expected Cash
-                        </div>
+                            <div class="cashier-shift-summary-label">
+                                Refunds
+                            </div>
 
-                        <div class="text-xl font-bold">
-                            M{{ number_format(
-                                (float) (
-                                    $this->session->opening_float
-                                    + $this->session->cash_sales
-                                    - $this->session->refund_total
-                                ),
-                                2
-                            ) }}
+                            <div class="cashier-shift-summary-value">
+                                M{{ number_format(
+                                    (float) $this->session->refund_total,
+                                    2
+                                ) }}
+                            </div>
+
                         </div>
 
                     </div>
 
                 </div>
 
-            </x-filament::section>
+            </div>
+
+
+            {{-- =====================================================
+                 SHIFT STATISTICS
+                 ===================================================== --}}
+            <div class="cashier-shift-section">
+
+                <div class="cashier-shift-section-header">
+
+                    <div class="cashier-shift-section-icon bg-gray-100">
+                        <x-heroicon-o-chart-pie class="text-gray-600" />
+                    </div>
+
+                    <div>
+                        <div class="cashier-shift-section-title">
+                            Shift Statistics
+                        </div>
+
+                        <div class="cashier-shift-section-description">
+                            Transaction activity for the current shift
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="cashier-shift-section-body">
+
+                    <div class="cashier-shift-summary-grid">
+
+                        {{-- Transactions --}}
+                        <div class="cashier-shift-summary-card">
+
+                            <div class="cashier-shift-summary-label">
+                                Transactions
+                            </div>
+
+                            <div class="cashier-shift-summary-value">
+                                {{ $this->session->transaction_count }}
+                            </div>
+
+                        </div>
+
+
+                        {{-- Receipts --}}
+                        <div class="cashier-shift-summary-card">
+
+                            <div class="cashier-shift-summary-label">
+                                Receipts
+                            </div>
+
+                            <div class="cashier-shift-summary-value">
+                                {{ $this->session->receipt_count }}
+                            </div>
+
+                        </div>
+
+
+                        {{-- Refunds --}}
+                        <div class="cashier-shift-summary-card">
+
+                            <div class="cashier-shift-summary-label">
+                                Refunds
+                            </div>
+
+                            <div class="cashier-shift-summary-value">
+                                {{ $this->session->refund_count }}
+                            </div>
+
+                        </div>
+
+
+                        {{-- Net Sales --}}
+                        <div class="cashier-shift-summary-card">
+
+                            <div class="cashier-shift-summary-label">
+                                Net Sales
+                            </div>
+
+                            <div class="cashier-shift-summary-value">
+                                M{{ number_format(
+                                    (float) $this->session->net_sales,
+                                    2
+                                ) }}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {{-- =====================================================
+                 CASH POSITION
+                 ===================================================== --}}
+            <div class="cashier-shift-section">
+
+                <div class="cashier-shift-section-header">
+
+                    <div class="cashier-shift-section-icon bg-warning-100">
+                        <x-heroicon-o-banknotes class="text-warning-600" />
+                    </div>
+
+                    <div>
+                        <div class="cashier-shift-section-title">
+                            Cash Position
+                        </div>
+
+                        <div class="cashier-shift-section-description">
+                            Current expected cash position
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="cashier-shift-section-body">
+
+                    <div class="cashier-shift-summary-grid">
+
+                        {{-- Opening Float --}}
+                        <div class="cashier-shift-summary-card">
+
+                            <div class="cashier-shift-summary-label">
+                                Opening Float
+                            </div>
+
+                            <div class="cashier-shift-summary-value">
+                                M{{ number_format(
+                                    (float) $this->session->opening_float,
+                                    2
+                                ) }}
+                            </div>
+
+                        </div>
+
+
+                        {{-- Expected Cash --}}
+                        <div class="cashier-shift-summary-card">
+
+                            <div class="cashier-shift-summary-label">
+                                Expected Cash
+                            </div>
+
+                            <div class="cashier-shift-summary-value">
+                                M{{ number_format(
+                                    (float) (
+                                        $this->session->opening_float
+                                        + $this->session->cash_sales
+                                        - $this->session->refund_total
+                                    ),
+                                    2
+                                ) }}
+                            </div>
+
+                        </div>
+
+                        {{-- Expected Non Cash --}}
+                        <div class="cashier-shift-summary-card">
+
+                            <div class="cashier-shift-summary-label">
+                                Expected Non Cash
+                            </div>
+
+                            <div class="cashier-shift-summary-value">
+                                M{{ number_format(
+                                    (float) ($this->session->bank_sales
+                                    ),
+                                    2
+                                ) }}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {{-- =====================================================
+                 SHIFT ACTIONS
+                 ===================================================== --}}
+            <div class="cashier-shift-section">
+
+                <div class="cashier-shift-section-header">
+
+                    <div class="cashier-shift-section-icon bg-danger-100">
+                        <x-heroicon-o-cog-6-tooth class="text-danger-600" />
+                    </div>
+
+                    <div>
+                        <div class="cashier-shift-section-title">
+                            Shift Management
+                        </div>
+
+                        <div class="cashier-shift-section-description">
+                            Manage and close the current register session
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="cashier-shift-section-body">
+
+                    <div class="cashier-shift-actions">
+
+                        {{-- Existing Livewire / Filament actions should remain here --}}
+
+                        {{ $this->openShiftAction ?? '' }}
+
+                        {{ $this->closeShiftAction ?? '' }}
+
+                    </div>
+
+                </div>
+
+            </div>
 
         </div>
 
+
     @else
 
-        <x-filament::section>
+        {{-- =====================================================
+             NO ACTIVE SHIFT
+             ===================================================== --}}
+        <div class="cashier-shift-section">
 
-            <div class="py-10 text-center">
+            <div class="cashier-shift-section-body">
 
-                <div class="text-2xl font-bold">
-                    No Active Shift
-                </div>
+                <div class="py-10 text-center">
 
-                <div class="mt-2 text-gray-500">
-                    Open a shift before processing cashier transactions.
+                    <div class="cashier-dashboard-icon bg-warning-100 mx-auto">
+                        <x-heroicon-o-lock-closed class="text-warning-600" />
+                    </div>
+
+                    <div class="mt-4 text-xl font-bold">
+                        No Active Shift
+                    </div>
+
+                    <div class="mt-2 text-sm text-gray-500">
+                        Open a shift before processing cashier transactions.
+                    </div>
+
                 </div>
 
             </div>
 
-        </x-filament::section>
+        </div>
 
     @endif
 

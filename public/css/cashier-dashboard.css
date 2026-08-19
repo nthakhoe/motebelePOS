@@ -480,3 +480,291 @@
     padding-top: 2px;
 }
 
+/* =========================================================
+   SHIFT MANAGEMENT
+   ========================================================= */
+
+.cashier-shift-management {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+
+/* ---------------------------------------------------------
+   Section cards
+   --------------------------------------------------------- */
+
+.cashier-shift-section {
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+
+/* ---------------------------------------------------------
+   Section header
+   --------------------------------------------------------- */
+
+.cashier-shift-section-header {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 16px 20px;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    background: #f9fafb;
+}
+
+
+.cashier-shift-section-icon {
+    width: 38px !important;
+    height: 38px !important;
+
+    min-width: 38px !important;
+    min-height: 38px !important;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+}
+
+
+.cashier-shift-section-icon svg {
+    width: 19px !important;
+    height: 19px !important;
+}
+
+
+.cashier-shift-section-title {
+    font-size: 15px;
+
+    font-weight: 700;
+
+    color: #111827;
+}
+
+
+.cashier-shift-section-description {
+    margin-top: 2px;
+
+    font-size: 12px;
+
+    color: #6b7280;
+}
+
+
+/* ---------------------------------------------------------
+   Section body
+   --------------------------------------------------------- */
+
+.cashier-shift-section-body {
+    padding: 20px;
+}
+
+
+/* ---------------------------------------------------------
+   Current shift information
+   --------------------------------------------------------- */
+
+.cashier-current-shift {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 20px;
+}
+
+
+.cashier-shift-info-label {
+    display: block;
+
+    margin-bottom: 5px;
+
+    font-size: 11px;
+
+    font-weight: 500;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.04em;
+
+    color: #6b7280;
+}
+
+
+.cashier-shift-info-value {
+    display: block;
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    color: #111827;
+}
+
+
+.cashier-shift-session-number {
+    font-size: 20px;
+
+    font-weight: 700;
+
+    color: #111827;
+}
+
+
+/* ---------------------------------------------------------
+   Status badge
+   --------------------------------------------------------- */
+
+.cashier-shift-status {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 5px 10px;
+
+    border-radius: 999px;
+
+    background: #dcfce7;
+
+    color: #15803d;
+
+    font-size: 11px;
+
+    font-weight: 700;
+}
+
+
+.cashier-shift-status-dot {
+    width: 7px;
+
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #22c55e;
+}
+
+
+/* ---------------------------------------------------------
+   Summary cards
+   --------------------------------------------------------- */
+
+.cashier-shift-summary-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 14px;
+}
+
+
+.cashier-shift-summary-card {
+    padding: 18px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 12px;
+
+    background: #ffffff;
+}
+
+
+.cashier-shift-summary-label {
+    font-size: 12px;
+
+    font-weight: 500;
+
+    color: #6b7280;
+}
+
+
+.cashier-shift-summary-value {
+    margin-top: 6px;
+
+    font-size: 22px;
+
+    font-weight: 700;
+
+    line-height: 1.2;
+
+    color: #111827;
+}
+
+
+/* ---------------------------------------------------------
+   Action area
+   --------------------------------------------------------- */
+
+.cashier-shift-actions {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    padding-top: 18px;
+
+    margin-top: 18px;
+
+    border-top: 1px solid #e5e7eb;
+}
+
+
+/* ---------------------------------------------------------
+   Mobile
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+
+    .cashier-current-shift {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cashier-shift-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 640px) {
+
+    .cashier-current-shift {
+        grid-template-columns: 1fr;
+    }
+
+    .cashier-shift-section-header {
+        padding: 14px 16px;
+    }
+
+    .cashier-shift-section-body {
+        padding: 16px;
+    }
+
+    .cashier-shift-actions {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+}
