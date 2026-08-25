@@ -1015,3 +1015,7 @@
     }
 
 }
+
+.fi-header-heading {
+    display: none;
+}

@@ -51,8 +51,6 @@ class SignatureService
             OPENSSL_ALGO_SHA256
         );
 
-        openssl_free_key($privateKey);
-
         if (! $success) {
             throw new RuntimeException(
                 'Unable to generate device signature.'

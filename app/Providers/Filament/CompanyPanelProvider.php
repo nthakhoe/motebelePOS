@@ -29,9 +29,6 @@ class CompanyPanelProvider extends PanelProvider
             ->id('company')
             ->path('company')
             ->login(\App\Filament\Company\Auth\Login::class)
-            ->pages([
-                Dashboard::class,
-            ])
             ->assets([
                 Css::make('company-dashboard', asset('css/company-dashboard.css')),
             ])

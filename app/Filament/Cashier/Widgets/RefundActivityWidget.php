@@ -18,7 +18,7 @@ class RefundActivityWidget extends Widget
         return (int) RegisterSession::query()
             ->where('user_id', Auth::id())
             ->whereDate('opened_at', today())
-            ->sum('refund_count');
+            ->sum('refund_total');
     }
 
     public function getSessionRefundCount(): int

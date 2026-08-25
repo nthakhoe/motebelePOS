@@ -52,23 +52,8 @@ class FiscalDaySignatureService
     {
         /*
         |--------------------------------------------------------------------------
-        | Remove zero-value counters
+        | Lekuka v1.11 FiscalCounterType enum order
         |--------------------------------------------------------------------------
-        */
-
-        $counters = collect($counters)
-            ->filter(function (array $counter) {
-
-                return (float) ($counter['fiscalCounterValue'] ?? 0) != 0;
-            })
-            ->values();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Lekuka FiscalCounterType enum order
-        |--------------------------------------------------------------------------
-        |
-        | v1.11:
         |
         | SaleByTax          = 0
         | SaleTaxByTax       = 1
@@ -96,19 +81,8 @@ class FiscalDaySignatureService
 
         /*
         |--------------------------------------------------------------------------
-        | Lekuka MoneyType enum order
+        | Lekuka v1.11 MoneyType enum order
         |--------------------------------------------------------------------------
-        |
-        | v1.11:
-        |
-        | Cash         = 0
-        | Card         = 1
-        | MobileWallet = 2
-        | Coupon       = 3
-        | Credit       = 4
-        | BankTransfer = 5
-        | Other        = 6
-        |
         */
 
         $moneyTypeOrder = [
@@ -123,38 +97,45 @@ class FiscalDaySignatureService
 
         /*
         |--------------------------------------------------------------------------
-        | Sort counters exactly according to Lekuka specification
+        | Remove zero counters
         |--------------------------------------------------------------------------
         */
 
-        $counters = $counters
+        $counters = collect($counters)
+            ->filter(function (array $counter) {
+
+                return (float) (
+                    $counter['fiscalCounterValue'] ?? 0
+                ) != 0;
+            })
+
             ->sort(function (array $a, array $b) use (
                 $counterTypeOrder,
                 $moneyTypeOrder
             ) {
 
                 /*
-                |----------------------------------------------------------------------
-                | 1. Fiscal counter type
-                |---------------------------------------------------------------------- 
+                |--------------------------------------------------------------------------
+                | 1. FiscalCounterType enum order
+                |--------------------------------------------------------------------------
                 */
 
                 $typeA = $counterTypeOrder[
                     $a['fiscalCounterType'] ?? ''
-                ] ?? PHP_INT_MAX;
+                ] ?? 999;
 
                 $typeB = $counterTypeOrder[
                     $b['fiscalCounterType'] ?? ''
-                ] ?? PHP_INT_MAX;
+                ] ?? 999;
 
                 if ($typeA !== $typeB) {
                     return $typeA <=> $typeB;
                 }
 
                 /*
-                |----------------------------------------------------------------------
+                |--------------------------------------------------------------------------
                 | 2. Currency alphabetical order
-                |---------------------------------------------------------------------- 
+                |--------------------------------------------------------------------------
                 */
 
                 $currencyA = strtoupper(
@@ -175,48 +156,34 @@ class FiscalDaySignatureService
                 }
 
                 /*
-                |----------------------------------------------------------------------
-                | 3. Tax ID for "ByTax" counters
-                |---------------------------------------------------------------------- 
+                |--------------------------------------------------------------------------
+                | 3. Tax ID / Money Type order
+                |--------------------------------------------------------------------------
                 */
-
-                $taxIdA = $a['fiscalCounterTaxID'] ?? null;
-                $taxIdB = $b['fiscalCounterTaxID'] ?? null;
 
                 if (
-                    $taxIdA !== null ||
-                    $taxIdB !== null
+                    isset($a['fiscalCounterTaxID']) ||
+                    isset($b['fiscalCounterTaxID'])
                 ) {
 
-                    $taxIdA = $taxIdA !== null
-                        ? (int) $taxIdA
-                        : PHP_INT_MAX;
-
-                    $taxIdB = $taxIdB !== null
-                        ? (int) $taxIdB
-                        : PHP_INT_MAX;
-
-                    if ($taxIdA !== $taxIdB) {
-                        return $taxIdA <=> $taxIdB;
-                    }
+                    return (
+                        (int) ($a['fiscalCounterTaxID'] ?? 0)
+                    ) <=> (
+                        (int) ($b['fiscalCounterTaxID'] ?? 0)
+                    );
                 }
-
-                /*
-                |----------------------------------------------------------------------
-                | 4. Money type for BalanceByMoneyType
-                |---------------------------------------------------------------------- 
-                */
 
                 $moneyA = $moneyTypeOrder[
                     $a['fiscalCounterMoneyType'] ?? ''
-                ] ?? PHP_INT_MAX;
+                ] ?? 999;
 
                 $moneyB = $moneyTypeOrder[
                     $b['fiscalCounterMoneyType'] ?? ''
-                ] ?? PHP_INT_MAX;
+                ] ?? 999;
 
                 return $moneyA <=> $moneyB;
             })
+
             ->values();
 
         /*
@@ -230,47 +197,40 @@ class FiscalDaySignatureService
         foreach ($counters as $counter) {
 
             /*
-            |----------------------------------------------------------------------
-            | Fiscal counter type
-            |---------------------------------------------------------------------- 
+            |--------------------------------------------------------------------------
+            | Counter type
+            |--------------------------------------------------------------------------
             */
 
             $canonical .= strtoupper(
-                $counter['fiscalCounterType'] ?? ''
+                $counter['fiscalCounterType']
             );
 
             /*
-            |----------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Currency
-            |---------------------------------------------------------------------- 
+            |--------------------------------------------------------------------------
             */
 
             $canonical .= strtoupper(
-                $counter['fiscalCounterCurrency'] ?? ''
+                $counter['fiscalCounterCurrency']
             );
 
             /*
-            |----------------------------------------------------------------------
-            | Tax rate OR money type
-            |---------------------------------------------------------------------- 
+            |--------------------------------------------------------------------------
+            | Tax-based counter
+            |--------------------------------------------------------------------------
             */
 
             if (
-                array_key_exists(
-                    'fiscalCounterTaxRate',
-                    $counter
-                )
+                isset($counter['fiscalCounterTaxRate'])
             ) {
 
                 $rate = $counter['fiscalCounterTaxRate'];
 
                 /*
-                | Lekuka:
-                |
-                | 15    -> 15.00
-                | 14.5  -> 14.50
-                | 0     -> 0.00
-                | null  -> empty string
+                | Exempt tax:
+                | empty tax rate in canonical string.
                 */
 
                 if ($rate === null) {
@@ -279,6 +239,14 @@ class FiscalDaySignatureService
 
                 } else {
 
+                    /*
+                    | Lekuka requires:
+                    |
+                    | 15     -> 15.00
+                    | 14.5   -> 14.50
+                    | 0      -> 0.00
+                    */
+
                     $canonical .= number_format(
                         (float) $rate,
                         2,
@@ -286,12 +254,16 @@ class FiscalDaySignatureService
                         ''
                     );
                 }
+            }
 
-            } elseif (
-                array_key_exists(
-                    'fiscalCounterMoneyType',
-                    $counter
-                )
+            /*
+            |--------------------------------------------------------------------------
+            | Money-type counter
+            |--------------------------------------------------------------------------
+            */
+
+            elseif (
+                isset($counter['fiscalCounterMoneyType'])
             ) {
 
                 $canonical .= strtoupper(
@@ -300,26 +272,17 @@ class FiscalDaySignatureService
             }
 
             /*
-            |----------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Counter value
-            |----------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             |
-            | Lekuka requires monetary values in cents.
-            |
-            | 28.75 -> 2875
-            | 15.00 -> 1500
-            | 100.00 -> 10000
+            | Lekuka requires amounts in cents.
             |
             */
 
-            $value = (float) (
-                $counter['fiscalCounterValue'] ?? 0
-            );
-
-            $canonical .= (string) (
-                intdiv(
-                    (int) round($value * 100),
-                    1
+            $canonical .= (string) intval(
+                round(
+                    ((float) $counter['fiscalCounterValue']) * 100
                 )
             );
         }

@@ -20,6 +20,8 @@ class Dashboard extends Page
 
     protected static UnitEnum|string|null $navigationGroup = null;
 
+    protected static ?string $title = null;
+
     protected function getHeaderWidgets(): array
     {
         return [];

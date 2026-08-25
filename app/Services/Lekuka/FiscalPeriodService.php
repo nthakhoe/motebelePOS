@@ -454,28 +454,7 @@ class FiscalPeriodService
         | Submit CloseDay
         |--------------------------------------------------------------------------
         */
-        dd([
-        'device_id' => $device->device_id,
-
-        'fiscal_day_no' => (int) $day->fiscal_day_no,
-
-        'fiscal_day_date' =>
-            $day->opened_at
-                ? $day->opened_at->format('Y-m-d')
-                : $day->business_date->format('Y-m-d'),
-
-        'last_receipt_counter' => $lastReceiptCounter,
-
-        'counters' => $counters,
-
-        'canonical' => $signature['canonical'],
-
-        'hash' => $signature['hash'],
-
-        'signature' => $signature['signature'],
-
-        'payload' => $payload,
-    ]);
+       
         $response = $this->client->securePost(
 
             device: $device,
