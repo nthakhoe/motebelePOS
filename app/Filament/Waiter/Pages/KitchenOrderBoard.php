@@ -102,6 +102,16 @@ class KitchenOrderBoard extends Page
         );
     }
 
+    public function markCollected(int $orderId): void
+    {
+        $this->changeOrderStatus(
+            $orderId,
+            RestaurantOrder::STATUS_READY,
+            RestaurantOrder::STATUS_SERVED,
+            'Kitchen confirmed that the order was collected by the waiter.'
+        );
+    }
+
     protected function changeOrderStatus(
         int $orderId,
         string $expectedStatus,

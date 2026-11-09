@@ -524,80 +524,61 @@ class FiscalPeriodService
         array $status
     ): LekukaFiscalDay {
 
-        $fiscalDayNo =
-            $status['lastFiscalDayNo'] ?? null;
+        $fiscalDayStatus = $status['fiscalDayStatus'] ?? null;
 
-        if (! $fiscalDayNo) {
+        $localStatus = match ($fiscalDayStatus) {
 
-            throw new RuntimeException(
-                'Lekuka did not return lastFiscalDayNo for the open fiscal day.'
-            );
+            'FiscalDayOpened' => 'OPEN',
+
+            'FiscalDayClosed' => 'CLOSED',
+
+            'FiscalDayCloseInitiated' => 'CLOSE_INITIATED',
+
+            'FiscalDayCloseFailed' => 'CLOSE_FAILED',
+
+            default => throw new RuntimeException(
+                'Unknown fiscal day status returned by Lekuka: '
+                . ($fiscalDayStatus ?? 'NULL')
+            ),
+
+        };
+
+        $closedAt = null;
+
+        if ($localStatus === 'CLOSED') {
+
+            $closedAt = ! empty($status['fiscalDayClosed'])
+                ? \Illuminate\Support\Carbon::parse(
+                    $status['fiscalDayClosed']
+                )
+                : now();
+
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Try to find the existing local fiscal day first.
-        |--------------------------------------------------------------------------
-        */
+        return LekukaFiscalDay::updateOrCreate(
 
-        $day = LekukaFiscalDay::query()
-            ->where('device_id', $device->id)
-            ->where('fiscal_day_no', $fiscalDayNo)
-            ->latest('id')
-            ->first();
+            [
+                'device_id' => $device->id,
 
-        if ($day) {
+                'fiscal_day_no' => $status['lastFiscalDayNo'],
 
-            $day->update([
+            ],
 
-                'status' =>
-                    'OPEN',
+            [
 
-                'response' =>
-                    $status,
+                'company_id' => $device->company_id,
 
-            ]);
+                'branch_id' => $device->branch_id,
 
-            return $day->fresh();
-        }
+                'status' => $localStatus,
 
-        /*
-        |--------------------------------------------------------------------------
-        | This should normally only happen if the local database missed
-        | the original OpenDay record.
-        |--------------------------------------------------------------------------
-        */
+                'closed_at' => $closedAt,
 
-        return LekukaFiscalDay::create([
+                'response' => $status,
 
-            'company_id' =>
-                $device->company_id,
+            ]
 
-            'branch_id' =>
-                $device->branch_id,
-
-            'device_id' =>
-                $device->id,
-
-            'fiscal_day_no' =>
-                $fiscalDayNo,
-
-            'business_date' =>
-                now()->toDateString(),
-
-            'opened_at' =>
-                now(),
-
-            'closed_at' =>
-                null,
-
-            'status' =>
-                'OPEN',
-
-            'response' =>
-                $status,
-
-        ]);
+        );
     }
 
     /**

@@ -56,6 +56,11 @@
                 <strong>{{ $readyOrders }}</strong>
             </div>
 
+            <div class="order-summary-card served">
+                <span>Served</span>
+                <strong>{{ $servedOrders }}</strong>
+            </div>
+
             <div class="order-summary-card bill">
                 <span>Bill Requested</span>
                 <strong>{{ $billRequestedOrders }}</strong>
@@ -205,27 +210,59 @@
                                 </span>
                             </td>
 
-                            <td>
+                            <td class="order-actions">
 
-                                @if($order->status !== 'bill_requested')
+                            @if($order->status === 'served')
 
-                                    <button
-                                        type="button"
-                                        wire:click="openOrder({{ $order->id }})"
-                                        class="open-order-action"
-                                    >
-                                        Open Order
-                                    </button>
+                                <button
+                                    type="button"
+                                    wire:click="requestBill({{ $order->id }})"
+                                    wire:loading.attr="disabled"
+                                    class="request-bill-action"
+                                >
+                                    Request Bill
+                                </button>
 
-                                @else
+                                <button
+                                    type="button"
+                                    wire:click="openOrder({{ $order->id }})"
+                                    class="open-order-action"
+                                >
+                                    Add Items
+                                </button>
 
-                                    <span class="locked-order">
-                                        Awaiting Payment
-                                    </span>
+                            @elseif($order->status === 'bill_requested')
 
-                                @endif
+                                <a
+                                    href="{{ route('restaurant.orders.preliminary-bill', $order->id) }}"
+                                    target="_blank"
+                                    class="print-bill-action"
+                                >
+                                    Print Bill
+                                </a>
 
-                            </td>
+                                <button
+                                    type="button"
+                                    wire:click="cancelBillRequest({{ $order->id }})"
+                                    wire:confirm="Cancel this bill request and allow additional items?"
+                                    class="cancel-bill-action"
+                                >
+                                    Reopen Order
+                                </button>
+
+                            @else
+
+                                <button
+                                    type="button"
+                                    wire:click="openOrder({{ $order->id }})"
+                                    class="open-order-action"
+                                >
+                                    Open Order
+                                </button>
+
+                            @endif
+
+                        </td>
 
                         </tr>
 

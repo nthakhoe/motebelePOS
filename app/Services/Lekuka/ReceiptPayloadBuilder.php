@@ -327,18 +327,11 @@ class ReceiptPayloadBuilder
         */
 
         $previousHash = LekukaReceipt::query()
-
-            ->where(
-                'device_id',
-                $device->id
-            )
-
+            ->where('device_id', $device->id)
+            ->where('fiscal_day_no', $day->fiscal_day_no)
             ->whereNotNull('device_hash')
-
-            ->orderByRaw(
-                'CAST(receipt_global_no AS UNSIGNED) DESC'
-            )
-
+            ->where('receipt_counter', '<', $receiptCounter)
+            ->orderByRaw('CAST(receipt_counter AS UNSIGNED) DESC')
             ->value('device_hash');
 
         /*

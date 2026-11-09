@@ -328,3 +328,12 @@
         grid-template-columns: 1fr;
     }
 }
+
+.kitchen-action-button.collected {
+    background: #16a34a;
+    color: white;
+}
+
+.kitchen-action-button.collected:hover {
+    background: #15803d;
+}

@@ -419,9 +419,21 @@
                             </div>
 
 
-                            <div class="ready-notice">
-                                Order is ready. Waiter can collect it.
-                            </div>
+                            <button
+                                type="button"
+                                wire:click="markCollected({{ $order->id }})"
+                                wire:loading.attr="disabled"
+                                wire:target="markCollected({{ $order->id }})"
+                                class="kitchen-action-button collected"
+                            >
+                                <span wire:loading.remove wire:target="markCollected({{ $order->id }})">
+                                    ✓ Confirm Order Collected
+                                </span>
+
+                                <span wire:loading wire:target="markCollected({{ $order->id }})">
+                                    Processing...
+                                </span>
+                            </button>
 
                         </div>
 

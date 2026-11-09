@@ -135,13 +135,19 @@ class ReceiptService
             | locked, BEFORE incrementing the counters.
             |--------------------------------------------------------------------------
             */
-            $receiptCounter = ((int) $lockedDevice->last_receipt_counter) + 1;
+            // Get the latest receipt counter for THIS fiscal day only.
+            $lastDayReceiptCounter = LekukaReceipt::query()
+                ->where('device_id', $lockedDevice->id)
+                ->where('fiscal_day_no', (string) $day->fiscal_day_no)
+                ->whereNotNull('receipt_counter')
+                ->orderByRaw('CAST(receipt_counter AS UNSIGNED) DESC')
+                ->value('receipt_counter');
 
+            // Counter resets automatically when a new fiscal day has no receipts.
+            $receiptCounter = ((int) $lastDayReceiptCounter) + 1;
+
+            // Global receipt number continues across all fiscal days.
             $receiptGlobalNo = ((int) $lockedDevice->last_global_receipt_no) + 1;
-            
-            //$receiptCounter = ((int) $device->last_receipt_counter) + 1;
-
-            //$receiptGlobalNo = ((int) $device->last_global_receipt_no) + 1;
 
             $receiptData = $this->builder->build(
                 sale: $sale,
@@ -188,8 +194,7 @@ class ReceiptService
             |--------------------------------------------------------------------------
             */
 
-            $expectedCounter =
-                ((int) $lockedDevice->last_receipt_counter) + 1;
+            $expectedCounter = $receiptCounter;
 
             $expectedGlobalNo =
                 ((int) $lockedDevice->last_global_receipt_no) + 1;
@@ -344,8 +349,38 @@ class ReceiptService
         |--------------------------------------------------------------------------
         */
 
+        /*
+        |--------------------------------------------------------------------------
+        | Prevent duplicate submission
+        |--------------------------------------------------------------------------
+        */
+
         if ($receipt->status === 'SUBMITTED') {
             return $sale->fresh();
+        }
+
+        $previousResponse = $receipt->response ?? [];
+
+        if (is_string($previousResponse)) {
+            $previousResponse = json_decode($previousResponse, true) ?? [];
+        }
+
+        $previousErrors = $previousResponse['validationErrors'] ?? [];
+
+        if (! is_array($previousErrors)) {
+            $previousErrors = [];
+        }
+
+        $previousBlockingErrors = collect($previousErrors)
+            ->filter(fn ($error) =>
+                ($error['validationErrorColor'] ?? null) !== 'Yellow'
+            );
+
+        if ($previousBlockingErrors->isNotEmpty()) {
+            throw new \RuntimeException(
+                "Receipt {$receipt->id} has previously received blocking "
+                . "Lekuka validation errors. It must not be resubmitted."
+            );
         }
 
         /*
@@ -512,6 +547,72 @@ class ReceiptService
             $serverSignature =
                 $data['receiptServerSignature']
                 ?? null;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Inspect Lekuka validation errors
+            |--------------------------------------------------------------------------
+            */
+
+            $validationErrors = $data['validationErrors'] ?? [];
+
+            if (! is_array($validationErrors)) {
+                $validationErrors = [];
+            }
+
+            $blockingErrors = [];
+
+            foreach ($validationErrors as $validationError) {
+
+                $color = $validationError['validationErrorColor'] ?? null;
+
+                // Only Yellow is treated as a non-blocking warning.
+                if ($color !== 'Yellow') {
+                    $blockingErrors[] = $validationError;
+                }
+            }
+
+            if (
+                ! empty($blockingErrors) ||
+                empty($lekukaReceiptId) ||
+                empty($serverSignature)
+            ) {
+
+                $errorMessage = ! empty($blockingErrors)
+                    ? 'Lekuka rejected the receipt due to blocking validation errors: '
+                        . collect($blockingErrors)
+                            ->map(fn ($error) =>
+                                ($error['validationErrorCode'] ?? 'UNKNOWN')
+                                . ' - '
+                                . ($error['validationErrorDescription'] ?? 'Unknown error')
+                            )
+                            ->implode('; ')
+                    : 'Lekuka response did not contain a valid receipt ID and server signature.';
+
+                $receipt->forceFill([
+
+                    'ReceiptId' => $lekukaReceiptId,
+
+                    'server_signature' => $serverSignature,
+
+                    'response' => $data,
+
+                    'status' => 'FAILED',
+
+                    'error_message' => $errorMessage,
+
+                ])->save();
+
+                $sale->update([
+
+                    'submitted_to_lekuka' => false,
+
+                    'lekuka_status' => 'FAILED',
+
+                ]);
+
+                throw new \RuntimeException($errorMessage);
+            }
 
             /*
             |--------------------------------------------------------------------------

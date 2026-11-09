@@ -5,6 +5,80 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Sale;
 use App\Services\ReceiptPrinter;
 use App\Http\Controllers\Cashier\SaleReceiptController;
+use App\Models\RestaurantOrder;
+use Illuminate\Support\Facades\Auth;
+
+Route::middleware(['auth'])
+    ->get('/restaurant/orders/{order}/preliminary-bill', function (int $order) {
+
+        $user = Auth::user();
+
+        $query = RestaurantOrder::query()
+            ->where('id', $order)
+            ->where('company_id', $user->company_id);
+
+        if ($user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $restaurantOrder = $query
+            ->with([
+                'company',
+                'branch',
+                'table.area',
+                'waiter',
+                'items',
+            ])
+            ->first();
+
+        abort_if(
+            !$restaurantOrder,
+            404,
+            'Restaurant order not found for your company or branch.'
+        );
+
+        abort_unless(
+            $restaurantOrder->status === RestaurantOrder::STATUS_BILL_REQUESTED,
+            403,
+            'A preliminary bill can only be printed after requesting a bill.'
+        );
+
+        return view('restaurant.print.preliminary-bill', [
+            'order' => $restaurantOrder,
+            'company' => $restaurantOrder->company,
+            'branch' => $restaurantOrder->branch,
+        ]);
+
+    })->name('restaurant.orders.preliminary-bill');
+/*Route::middleware(['auth'])
+    ->get('/restaurant/orders/{order}/preliminary-bill', function (int $order) {
+
+        $user = Auth::user();
+
+        $restaurantOrder = RestaurantOrder::query()
+            ->where('id', $order)
+            ->where('company_id', $user->company_id)
+            ->where('branch_id', $user->branch_id)
+            ->where('status', RestaurantOrder::STATUS_BILL_REQUESTED)
+            ->with([
+                'company',
+                'branch',
+                'table.area',
+                'waiter',
+                'items',
+            ])
+            ->firstOrFail();
+
+        return view(
+            'restaurant.print.preliminary-bill',
+            [
+                'order' => $restaurantOrder,
+                'company' => $restaurantOrder->company,
+                'branch' => $restaurantOrder->branch,
+            ]
+        );
+
+    })->name('restaurant.orders.preliminary-bill');*/
 
 Route::middleware(['auth'])->group(function () {
 

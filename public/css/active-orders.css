@@ -286,3 +286,48 @@
         width: 100%;
     }
 }
+
+.order-summary-card.served {
+    border-top: 4px solid #0d9488;
+}
+
+.order-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 150px;
+}
+
+.request-bill-action,
+.print-bill-action,
+.cancel-bill-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: none;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.request-bill-action {
+    background: #0d9488;
+}
+
+.print-bill-action {
+    background: #2563eb;
+}
+
+.cancel-bill-action {
+    background: #64748b;
+}
+
+.request-bill-action:hover,
+.print-bill-action:hover,
+.cancel-bill-action:hover {
+    opacity: .85;
+}
