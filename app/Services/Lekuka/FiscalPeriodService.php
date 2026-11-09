@@ -274,27 +274,19 @@ class FiscalPeriodService
         $openedAt = now();
 
         $response = $this->client->securePost(
-
             device: $device,
 
             endpoint:
                 "/Device/v1/{$device->device_id}/OpenDay",
 
             payload: [
-
-                'openDayRequest' => [
-
-                    'fiscalDayOpened' =>
-                        $openedAt->format('Y-m-d\TH:i:s'),
-
-                ],
-
+                'fiscalDayOpened' =>
+                    $openedAt->format('Y-m-d\TH:i:s'),
             ],
 
             action: 'OPEN_DAY',
 
             correlationId: $correlationId,
-
         );
 
         $response->throw();
@@ -454,6 +446,8 @@ class FiscalPeriodService
         | Submit CloseDay
         |--------------------------------------------------------------------------
         */
+
+        \Log::info('CLOSE DAY PAYLOAD', $payload);
        
         $response = $this->client->securePost(
 
@@ -940,5 +934,24 @@ class FiscalPeriodService
             default =>
                 'Other',
         };
+    }
+
+    /**
+     * Refresh the locally stored fiscal-day status from Lekuka.
+     */
+    public function refresh(
+        LekukaDevice $device
+    ): ?LekukaFiscalDay {
+
+        $status = $this->status($device);
+
+        if (($status['fiscalDayStatus'] ?? null) !== 'FiscalDayOpened') {
+            return $this->current($device);
+        }
+
+        return $this->sync(
+            device: $device,
+            status: $status,
+        );
     }
 }

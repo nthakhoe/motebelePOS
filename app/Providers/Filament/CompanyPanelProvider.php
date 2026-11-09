@@ -29,6 +29,7 @@ class CompanyPanelProvider extends PanelProvider
             ->id('company')
             ->path('company')
             ->login(\App\Filament\Company\Auth\Login::class)
+            ->brandName('Motebele POS - Company')
             ->assets([
                 Css::make('company-dashboard', asset('css/company-dashboard.css')),
             ])

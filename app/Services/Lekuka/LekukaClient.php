@@ -29,8 +29,8 @@ class LekukaClient
 
         if ($device) {
             $client = $client->withHeaders([
-                'DeviceModelName'      => $device->device_model,
-                'DeviceModelVersion' => $device->device_model_version,
+                'DeviceModelName'      => trim($device->device_model),
+                'DeviceModelVersion' => trim($device->device_model_version),
             ]);
         }
 
@@ -61,66 +61,43 @@ class LekukaClient
     }
 
     protected function request(
-
         string $method,
-
         string $endpoint,
-
         array $payload = [],
-
         ?LekukaDevice $device = null,
-
         ?string $action = null,
-
         ?string $correlationId = null
-
     ): Response {
 
         $start = microtime(true);
 
         $client = $this->client($device);
 
-        $response = $this->client($device)
-            ->send(
-                $method,
-                $endpoint,
-                [
-                    'json' => $payload
-                ]
-            );
+        $response = $client->send(
+            $method,
+            $endpoint,
+            [
+                'json' => $payload,
+            ]
+        );
 
         $this->audit->log([
-
             'company_id' => $device?->company_id,
-
             'branch_id' => $device?->branch_id,
-
             'device_id' => $device?->id,
-
             'user_id' => auth()->id(),
-
             'correlation_id' => $correlationId,
-
             'action' => $action,
-
             'endpoint' => $endpoint,
-
             'http_method' => strtoupper($method),
-
             'http_status' => $response->status(),
-
             'status' => $response->successful()
-                            ? 'SUCCESS'
-                            : 'FAILED',
-
+                ? 'SUCCESS'
+                : 'FAILED',
             'request' => $payload,
-
             'response' => $response->json(),
-
-            'duration_ms' => (microtime(true)-$start)*1000,
-
+            'duration_ms' => (microtime(true) - $start) * 1000,
             'ip_address' => request()?->ip(),
-
         ]);
 
         return $response;
@@ -273,6 +250,30 @@ class LekukaClient
             $action,
             $correlationId
         );
+    }
+
+    public function verifyTaxpayerInformation(
+        int $deviceId,
+        string $activationKey,
+        string $deviceSerialNo,
+        string $deviceModelName,
+        string $deviceModelVersion,
+    ) {
+        return Http::baseUrl(config('lekuka.base_url'))
+            ->acceptJson()
+            ->contentType('application/json')
+            ->timeout(config('lekuka.timeout'))
+            ->withHeaders([
+                'DeviceModelName' => $deviceModelName,
+                'DeviceModelVersionNo' => $deviceModelVersion,
+            ])
+            ->post(
+                "/Public/v1/{$deviceId}/VerifyTaxpayerInformation",
+                [
+                    'activationKey' => $activationKey,
+                    'deviceSerialNo' => $deviceSerialNo,
+                ]
+            );
     }
 
 }

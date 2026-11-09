@@ -183,7 +183,7 @@ body::before{
 
     display:grid;
 
-    grid-template-columns:repeat(3,1fr);
+    grid-template-columns:repeat(4,1fr);
 
     gap:35px;
 
@@ -239,6 +239,12 @@ body::before{
 
 }
 
+.waiter::before{
+
+    background:var(--primary);
+
+}
+
 .company::before{
 
     background:var(--company);
@@ -286,6 +292,12 @@ body::before{
 }
 
 .cashier .icon{
+
+    background:var(--primary-dark);
+
+}
+
+.waiter .icon{
 
     background:var(--primary-dark);
 
@@ -412,6 +424,12 @@ body::before{
 }
 
 .cashier .login{
+
+    background:var(--primary);
+
+}
+
+.waiter .login{
 
     background:var(--primary);
 
@@ -602,6 +620,12 @@ body::before{
 .cashier{
 
     border-top:6px solid #16A34A;
+
+}
+
+.waiter{
+
+    border-top:6px solid #EBD40C;
 
 }
 

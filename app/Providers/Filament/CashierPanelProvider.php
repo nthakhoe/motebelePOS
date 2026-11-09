@@ -27,7 +27,7 @@ class CashierPanelProvider extends PanelProvider
             ->id('cashier')
             ->path('cashier')
             ->login(\App\Filament\Cashier\Auth\Login::class)
-
+            ->brandName('Motebele POS - Cashier')
             ->colors([
                 'primary' => Color::Amber,
             ])

@@ -438,7 +438,7 @@ class POS extends Page implements HasActions
 
                 );
 
-                try {
+               /* try {
 
                     $device = LekukaDevice::where('registered', 1)->firstOrFail();
 
@@ -455,7 +455,7 @@ class POS extends Page implements HasActions
                         ->persistent()
                         ->send();
 
-                }
+                }*/
 
                 $this->completedSale = [
                     'id'          => $sale->id,

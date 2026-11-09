@@ -146,7 +146,7 @@ class ReceiptService
             $receiptData = $this->builder->build(
                 sale: $sale,
                 day: $day,
-                device: $device,
+                device: $lockedDevice,
                 receiptCounter: $receiptCounter,
                 receiptGlobalNo: $receiptGlobalNo,
             );
@@ -588,11 +588,6 @@ class ReceiptService
 
                 'submitted_to_lekuka' => true,
 
-                /*
-                 * This uses the LOCAL LekukaReceipt primary key because
-                 * your existing Sale relation currently stores the local
-                 * receipt record ID.
-                 */
                 'lekuka_receipt_id' => $receipt->id,
 
                 'receipt_no' => $receipt->receipt_number,
@@ -617,6 +612,43 @@ class ReceiptService
                 'submitted_at' => now(),
 
             ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Refresh local fiscal-day status
+            |--------------------------------------------------------------------------
+            |
+            | Lekuka advances lastReceiptGlobalNo after accepting the receipt.
+            | Keep the local fiscal-day snapshot synchronized with Lekuka.
+            |
+            | This is deliberately best-effort. The receipt has already been
+            | successfully submitted, so failure of this follow-up synchronization
+            | must NOT turn the receipt into FAILED.
+            |
+            */
+
+            try {
+
+                $status = $this->fiscal->status($device);
+
+                $this->fiscal->sync(
+                    device: $device,
+                    status: $status,
+                );
+
+            } catch (Throwable $syncException) {
+
+                \Log::warning(
+                    'Lekuka fiscal-day synchronization failed after receipt submission.',
+                    [
+                        'receipt_id' => $receipt->id,
+                        'sale_id' => $sale->id,
+                        'device_id' => $device->device_id,
+                        'receipt_global_no' => $receipt->receipt_global_no,
+                        'error' => $syncException->getMessage(),
+                    ]
+                );
+            }
 
             return $sale->fresh();
 
@@ -740,5 +772,64 @@ class ReceiptService
                 $data,
                 JSON_UNESCAPED_SLASHES
             );
+    }
+
+    public function retry(
+        LekukaReceipt $receipt,
+        LekukaDevice $device,
+    ): Sale {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Never retry an already submitted receipt
+        |--------------------------------------------------------------------------
+        */
+
+        if ($receipt->status === 'SUBMITTED') {
+            return $receipt->sale->fresh();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Only PENDING or FAILED receipts may be retried
+        |--------------------------------------------------------------------------
+        */
+
+        if (! in_array($receipt->status, [
+            'PENDING',
+            'FAILED',
+        ], true)) {
+
+            throw new \RuntimeException(
+                "Receipt {$receipt->id} cannot be retried."
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Make sure this receipt belongs to this device
+        |--------------------------------------------------------------------------
+        */
+
+        if ((int) $receipt->device_id !== (int) $device->id) {
+
+            throw new \RuntimeException(
+                "Receipt {$receipt->id} does not belong to device {$device->id}."
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Never generate a new fiscal number here.
+        |
+        | submitPendingReceipt() uses the persisted payload.
+        |--------------------------------------------------------------------------
+        */
+
+        return $this->submitPendingReceipt(
+            receipt: $receipt,
+            sale: $receipt->sale,
+            device: $device,
+        );
     }
 }

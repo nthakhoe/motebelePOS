@@ -20,6 +20,10 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
+        if (!$this->is_active) {
+            return false;
+        }
+
         return match ($panel->getId()) {
 
             'admin' => $this->hasRole('Super Admin'),
@@ -30,6 +34,8 @@ class User extends Authenticatable implements FilamentUser
             ]),
 
             'cashier' => $this->hasRole('Cashier'),
+
+            'waiter' => $this->hasRole('Waiter'),
 
             default => false,
         };
@@ -82,6 +88,7 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 

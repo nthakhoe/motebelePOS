@@ -160,6 +160,58 @@
 
         </div>
 
+        <!-- Waiter -->
+
+        <div class="portal-card waiter">
+
+            <div class="icon">
+
+                <i class="fa-solid fa-utensils"></i>
+
+            </div>
+
+            <h2>Restaurant Portal</h2>
+
+            <p>
+
+                Manage restaurant tables, take customer orders and coordinate restaurant service efficiently.
+
+            </p>
+
+            <ul>
+
+                <li>Restaurant Floor Plan</li>
+
+                <li>Table & Guest Management</li>
+
+                <li>Digital Menu & Product Selection</li>
+
+                <li>Order Taking & Management</li>
+
+                <li>Special Instructions & Order Tracking</li>
+
+            </ul>
+
+            <div class="buttons">
+
+                <a href="{{ url('/waiter/login') }}"
+                   class="btn login">
+
+                    Login
+
+                </a>
+
+                <a href="{{ asset('manuals/waiter.pdf') }}"
+                   target="_blank"
+                   class="btn manual">
+
+                    User Manual
+
+                </a>
+
+            </div>
+
+        </div>
 
         <!-- Company -->
 
