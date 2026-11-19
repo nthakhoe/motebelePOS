@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\SaleItem;
 use App\Services\InventoryService;
 use App\Services\PaymentService;
+use App\Models\RegisterSession;
 use App\Services\Lekuka\receiptService;
 
 class SalesService
@@ -23,66 +24,86 @@ class SalesService
 
     }
 
+    
     protected function createSaleItems(
         Sale $sale,
         array $cart,
     ): void {
+
+        $discountService = app(\App\Services\DiscountService::class);
+        $taxService = app(\App\Services\TaxService::class);
 
         foreach ($cart as $item) {
 
             $product = Product::with('unit')->findOrFail($item['id']);
 
             $unitPrice = (float) $item['price'];
-
             $quantity = (float) $item['quantity'];
-
             $discount = (float) ($item['discount'] ?? 0);
 
-            $tax = app(\App\Services\TaxService::class)
-                ->calculateInclusive(
-                    price: $unitPrice,
-                    qty: $quantity,
-                    rate: (float) ($product->tax_rate ?? 0),
-                );
+            // Validate and calculate the item discount.
+            $discountResult = $discountService->calculate(
+                unitPrice: $unitPrice,
+                quantity: $quantity,
+                discount: $discount,
+                costPrice: (float) $product->cost_price,
+            );
 
-            $taxAmount = $tax['tax'];
-
-
-            $lineTotal = (float) $item['line_total'];
+            // Calculate tax using the discounted selling price.
+            $taxResult = $taxService->calculateInclusive(
+                price: $discountResult['effective_unit_price'],
+                qty: $quantity,
+                rate: (float) ($product->tax_rate ?? 0),
+                additionalRate: (float) ($product->lekuka_additional_tax_rate ?? 0),
+                additionalType: $product->lekuka_additional_tax_type,
+                mainType: $product->lekuka_tax_type,
+            );
 
             $costPrice = (float) $product->cost_price;
 
-            $profit = ($unitPrice - $costPrice) * $quantity;
+            // Profit excludes the tax component and accounts for discounts.
+            $profit = round(
+                $taxResult['subtotal'] - ($costPrice * $quantity),
+                2
+            );
 
             SaleItem::create([
 
                 'sale_id' => $sale->id,
-
                 'product_id' => $product->id,
-
                 'unit_id' => $product->unit_id,
 
                 'quantity' => $quantity,
-
                 'unit_price' => $unitPrice,
 
-                'discount' => $discount,
+                // Actual monetary discount for this line.
+                'discount' => $discountResult['discount'],
 
                 'tax_rate' => $product->tax_rate ?? 0,
 
-                'tax_amount' => $taxAmount,
+                // Existing Lekuka tax snapshots.
+                'lekuka_tax_id' => $product->lekuka_tax_id,
+                'lekuka_tax_type' => $product->lekuka_tax_type,
+                'lekuka_tax_code' => $product->lekuka_tax_code,
 
-                'line_total' => $lineTotal,
+                'lekuka_additional_tax_id' => $product->lekuka_additional_tax_id,
+                'lekuka_additional_tax_type' => $product->lekuka_additional_tax_type,
+                'lekuka_additional_tax_code' => $product->lekuka_additional_tax_code,
+                'lekuka_additional_tax_rate' => $product->lekuka_additional_tax_rate,
+
+                'tax_amount' => $taxResult['tax'],
+
+                // Final payable amount for this item after discount.
+                'line_total' => $taxResult['total'],
 
                 'cost_price' => $costPrice,
-
                 'profit' => $profit,
-
                 'remarks' => null,
 
             ]);
         }
     }
+
     public function processSale(
         array $cart,
         int $customerId,
@@ -195,35 +216,62 @@ class SalesService
         User $cashier,
     ): Sale {
 
-        $subtotal = 0.00;
-        $vat = 0.00;
-        $discount = 0.00;
-        $total = 0.00;
+    $subtotal = 0.00;
+    $vat = 0.00;
+    $discount = 0.00;
+    $total = 0.00;
 
-        $taxService = app(\App\Services\TaxService::class);
+    $discountService = app(\App\Services\DiscountService::class);
+    $taxService = app(\App\Services\TaxService::class);
 
-        foreach ($cart as $item) {
+    foreach ($cart as $item) {
 
-            $result = $taxService->calculateInclusive(
-                price: (float) $item['price'],
-                qty: (float) $item['quantity'],
-                rate: (float) $item['tax'],
+        $product = Product::findOrFail($item['id']);
+
+        $unitPrice = (float) $item['price'];
+        $quantity = (float) $item['quantity'];
+        $itemDiscount = (float) ($item['discount'] ?? 0);
+
+        $discountResult = $discountService->calculate(
+                unitPrice: (float) $item['price'],
+                quantity: (float) $item['quantity'],
+                discount: (float) ($item['discount'] ?? 0),
+                costPrice: (float) $product->cost_price,
+        );
+
+        $taxResult = $taxService->calculateInclusive(
+            price: $discountResult['effective_unit_price'],
+            qty: $quantity,
+            rate: (float) ($product->tax_rate ?? 0),
+            additionalRate: (float) ($product->lekuka_additional_tax_rate ?? 0),
+            additionalType: $product->lekuka_additional_tax_type,
+            mainType: $product->lekuka_tax_type,
+        );
+
+        $subtotal += $taxResult['subtotal'];
+        $vat += $taxResult['tax'];
+        $discount += $discountResult['discount'];
+        $total += $taxResult['total'];
+    }
+
+    $subtotal = round($subtotal, 2);
+    $vat = round($vat, 2);
+    $discount = round($discount, 2);
+    $total = round($total, 2);
+
+        $registerSession = RegisterSession::query()
+            ->where('user_id', $cashier->id)
+            ->where('company_id', $cashier->company_id)
+            ->where('branch_id', $cashier->branch_id)
+            ->where('status', 'Open')
+            ->lockForUpdate()
+            ->first();
+
+        if (! $registerSession) {
+            throw new \RuntimeException(
+                'No open register session found for this cashier.'
             );
-
-            $subtotal += $result['subtotal'];
-
-            $vat += $result['tax'];
-
-            $total += $result['total'];
-
-            $discount += (float) ($item['discount'] ?? 0);
         }
-
-        $subtotal = round($subtotal, 2);
-        $vat = round($vat, 2);
-        $discount = round($discount, 2);
-
-        $total = round($total - $discount, 2);
 
         return Sale::create([
 
@@ -231,7 +279,7 @@ class SalesService
 
             'branch_id' => $cashier->branch_id,
 
-            'register_id' => null,
+            'register_id' => $registerSession->id,
 
             'user_id' => $cashier->id,
 

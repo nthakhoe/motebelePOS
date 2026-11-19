@@ -10,6 +10,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\Sale;
 use UnitEnum;
 use BackedEnum;
 
@@ -352,5 +353,15 @@ class ShiftManagement extends Page
             )
             ->success()
             ->send();
+    }
+    public function getTotalDiscount(): float
+    {
+        if (! $this->session) {
+            return 0;
+        }
+
+        return (float) Sale::query()
+            ->where('register_id', $this->session->id)
+            ->sum('discount');
     }
 }

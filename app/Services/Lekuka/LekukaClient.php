@@ -29,7 +29,8 @@ class LekukaClient
 
         if ($device) {
             $client = $client->withHeaders([
-                'DeviceModelName'      => trim($device->device_model),
+                'DeviceModelName' => trim($device->device_model),
+                'DeviceModelVersionNo' => trim($device->device_model_version),
                 'DeviceModelVersion' => trim($device->device_model_version),
             ]);
         }
@@ -41,7 +42,7 @@ class LekukaClient
         return $client->withOptions([
             'cert'    => $this->certificates->getCertificatePath($device),
             'ssl_key' => $this->certificates->getPrivateKeyPath($device),
-            'verify'  => false,
+            'verify'  => true,
         ]);
     }
 
@@ -73,34 +74,67 @@ class LekukaClient
 
         $client = $this->client($device);
 
-        $response = $client->send(
-            $method,
-            $endpoint,
-            [
-                'json' => $payload,
-            ]
-        );
+        try {
 
-        $this->audit->log([
-            'company_id' => $device?->company_id,
-            'branch_id' => $device?->branch_id,
-            'device_id' => $device?->id,
-            'user_id' => auth()->id(),
-            'correlation_id' => $correlationId,
-            'action' => $action,
-            'endpoint' => $endpoint,
-            'http_method' => strtoupper($method),
-            'http_status' => $response->status(),
-            'status' => $response->successful()
-                ? 'SUCCESS'
-                : 'FAILED',
-            'request' => $payload,
-            'response' => $response->json(),
-            'duration_ms' => (microtime(true) - $start) * 1000,
-            'ip_address' => request()?->ip(),
-        ]);
+            $response = $client->send(
+                $method,
+                $endpoint,
+                [
+                    'json' => $payload,
+                ]
+            );
 
-        return $response;
+            $this->audit->log([
+                'company_id' => $device?->company_id,
+                'branch_id' => $device?->branch_id,
+                'device_id' => $device?->id,
+                'user_id' => auth()->id(),
+                'correlation_id' => $correlationId,
+                'action' => $action,
+                'endpoint' => $endpoint,
+                'http_method' => strtoupper($method),
+                'http_status' => $response->status(),
+                'status' => $response->successful()
+                    ? 'SUCCESS'
+                    : 'FAILED',
+                'request' => $payload,
+                'response' => $response->json(),
+                'duration_ms' => (int) round(
+                    (microtime(true) - $start) * 1000
+                ),
+                'ip_address' => request()?->ip(),
+            ]);
+
+            return $this->handle($response);
+
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+
+            $this->audit->log([
+                'company_id' => $device?->company_id,
+                'branch_id' => $device?->branch_id,
+                'device_id' => $device?->id,
+                'user_id' => auth()->id(),
+                'correlation_id' => $correlationId,
+                'action' => $action,
+                'endpoint' => $endpoint,
+                'http_method' => strtoupper($method),
+                'http_status' => null,
+                'status' => 'PENDING',
+                'request' => $payload,
+                'response' => [
+                    'exception' => get_class($e),
+                ],
+                'error_message' => $e->getMessage(),
+                'duration_ms' => (int) round(
+                    (microtime(true) - $start) * 1000
+                ),
+                'ip_address' => request()?->ip(),
+            ]);
+
+            report($e);
+
+            throw $e;
+        }
     }
 
     public function post(
@@ -132,18 +166,12 @@ class LekukaClient
         );
     }
 
-    public function securePost(
-
+   public function securePost(
         LekukaDevice $device,
-
         string $endpoint,
-
-        array $payload = [],
-
         string $action,
-
-        string $correlationId
-
+        string $correlationId,
+        array $payload = []
     ): Response {
 
         return $this->request(
@@ -173,18 +201,13 @@ class LekukaClient
     protected function publicClient()
     {
         return Http::baseUrl(
-            config('services.lekuka.base_url')
+            config('lekuka.base_url')
         )
         ->timeout(60)
         ->acceptJson()
         ->withHeaders([
-
-            'DeviceModelName' =>
-                config('services.lekuka.device_model'),
-
-            'DeviceModelVersion' =>
-                config('services.lekuka.device_model_version'),
-
+            'DeviceModelName' => config('lekuka.device_model'),
+            'DeviceModelVersionNo' => config('lekuka.device_model_version'),
         ]);
     }
 
@@ -202,11 +225,11 @@ class LekukaClient
 
         $model = preg_replace('/[\r\n]+/', '', trim($device->device_model));
         $version = preg_replace('/[\r\n]+/', '', trim($device->device_model_version));
-        $response = Http::baseUrl(config('services.lekuka.base_url'))
+        $response = Http::baseUrl(config('lekuka.base_url'))
             ->acceptJson()
             ->withHeaders([
                 'DeviceModelName' => $model,
-                'DeviceModelVersion' => $version,
+                'DeviceModelVersionNo' => $version,
             ])
             ->post(
                 "/Public/v1/{$device->device_id}/RegisterDevice",

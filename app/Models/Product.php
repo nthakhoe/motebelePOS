@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\InventoryTransaction;
 
 class Product extends Model
 {
@@ -28,73 +27,80 @@ class Product extends Model
 
         'description',
 
+        // Pricing
         'cost_price',
-
+        'margin_percentage',
         'selling_price',
-
         'minimum_price',
 
+        // Main Lekuka tax
         'tax_rate',
+        'lekuka_tax_id',
+        'lekuka_tax_type',
+        'lekuka_tax_code',
 
+        // Additional Lekuka tax
+        'lekuka_additional_tax_id',
+        'lekuka_additional_tax_type',
+        'lekuka_additional_tax_code',
+        'lekuka_additional_tax_rate',
+
+        // Inventory
         'track_inventory',
-
         'allow_negative_stock',
-
         'minimum_stock',
-
         'maximum_stock',
-
         'reorder_level',
 
+        // Dimensions
         'weight',
-
         'length',
-
         'width',
-
         'height',
 
+        // Product status
         'is_service',
-
         'is_active',
 
+        // Media
         'image',
 
+        // Audit
         'created_by',
-
         'updated_by',
     ];
 
     protected $casts = [
 
+        // Pricing
         'cost_price' => 'decimal:2',
-
+        'margin_percentage' => 'decimal:2',
         'selling_price' => 'decimal:2',
-
         'minimum_price' => 'decimal:2',
 
+        // Main tax
         'tax_rate' => 'decimal:2',
+        'lekuka_tax_id' => 'integer',
 
+        // Additional tax
+        'lekuka_additional_tax_id' => 'integer',
+        'lekuka_additional_tax_rate' => 'decimal:4',
+
+        // Inventory
         'minimum_stock' => 'decimal:2',
-
         'maximum_stock' => 'decimal:2',
-
         'reorder_level' => 'decimal:2',
 
+        // Dimensions
         'weight' => 'decimal:3',
-
         'length' => 'decimal:2',
-
         'width' => 'decimal:2',
-
         'height' => 'decimal:2',
 
+        // Boolean fields
         'track_inventory' => 'boolean',
-
         'allow_negative_stock' => 'boolean',
-
         'is_service' => 'boolean',
-
         'is_active' => 'boolean',
     ];
 
@@ -134,12 +140,6 @@ class Product extends Model
         return $this->hasMany(StockAdjustmentItem::class);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Future Relationships
-    |--------------------------------------------------------------------------
-    */
-
     public function prices()
     {
         return $this->hasMany(ProductPrice::class);
@@ -175,5 +175,4 @@ class Product extends Model
     {
         return "{$this->sku} - {$this->product_name}";
     }
-
 }

@@ -31,6 +31,9 @@ class WaiterPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->sidebarCollapsibleOnDesktop()
+            ->sidebarFullyCollapsibleOnDesktop()
+
             ->discoverResources(
                 in: app_path('Filament/Waiter/Resources'),
                 for: 'App\Filament\Waiter\Resources'
@@ -39,8 +42,12 @@ class WaiterPanelProvider extends PanelProvider
                 in: app_path('Filament/Waiter/Pages'),
                 for: 'App\Filament\Waiter\Pages'
             )
+            ->homeUrl(
+                fn () => \App\Filament\Company\Pages\RestaurantFloorPlan::getUrl(
+                    panel: 'waiter'
+                )
+            )
             ->pages([
-                Dashboard::class,
                 \App\Filament\Company\Pages\RestaurantFloorPlan::class,
             ])
             ->discoverWidgets(
@@ -48,7 +55,6 @@ class WaiterPanelProvider extends PanelProvider
                 for: 'App\Filament\Waiter\Widgets'
             )
             ->widgets([
-                AccountWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

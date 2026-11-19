@@ -140,6 +140,22 @@
 
                         </div>
 
+                        {{-- Total Discounts --}}
+                        <div class="cashier-shift-summary-card">
+
+                            <div class="cashier-shift-summary-label">
+                                Total Discounts
+                            </div>
+
+                            <div class="cashier-shift-summary-value">
+                                M{{ number_format(
+                                    (float) $this->getTotalDiscount(),
+                                    2
+                                ) }}
+                            </div>
+
+                        </div>
+
 
                         {{-- Gross Sales --}}
                         <div class="cashier-shift-summary-card">
@@ -227,7 +243,7 @@
                         <div class="cashier-shift-summary-card">
 
                             <div class="cashier-shift-summary-label">
-                                Receipts
+                                Lekuka Submitted Receipts
                             </div>
 
                             <div class="cashier-shift-summary-value">
@@ -252,7 +268,7 @@
 
 
                         {{-- Net Sales --}}
-                        <div class="cashier-shift-summary-card">
+                        <!--<div class="cashier-shift-summary-card">
 
                             <div class="cashier-shift-summary-label">
                                 Net Sales
@@ -265,7 +281,7 @@
                                 ) }}
                             </div>
 
-                        </div>
+                        </div>-->
 
                     </div>
 
@@ -323,7 +339,7 @@
                         <div class="cashier-shift-summary-card">
 
                             <div class="cashier-shift-summary-label">
-                                Expected Cash
+                                Expected Cash + Float
                             </div>
 
                             <div class="cashier-shift-summary-value">
@@ -366,7 +382,7 @@
             {{-- =====================================================
                  SHIFT ACTIONS
                  ===================================================== --}}
-            <div class="cashier-shift-section">
+            <!--<div class="cashier-shift-section">
 
                 <div class="cashier-shift-section-header">
 
@@ -401,7 +417,7 @@
 
                 </div>
 
-            </div>
+            </div>-->
 
         </div>
 

@@ -14,41 +14,50 @@ class SaleItem extends Model
         'sale_id',
         'product_id',
         'unit_id',
-
         'quantity',
-
         'unit_price',
-
         'discount',
 
+        // Main tax allocation
         'tax_rate',
+        'lekuka_tax_id',
+        'lekuka_tax_type',
+        'lekuka_tax_code',
+
+        // Additional tax allocation
+        'lekuka_additional_tax_id',
+        'lekuka_additional_tax_type',
+        'lekuka_additional_tax_code',
+        'lekuka_additional_tax_rate',
+
+        // Financial values
         'tax_amount',
-
         'line_total',
-
         'cost_price',
-
         'profit',
 
         'remarks',
     ];
 
     protected $casts = [
-        'quantity'    => 'decimal:3',
-        'unit_price'  => 'decimal:2',
-        'discount'    => 'decimal:2',
-        'tax_rate'    => 'decimal:2',
-        'tax_amount'  => 'decimal:2',
-        'line_total'  => 'decimal:2',
-        'cost_price'  => 'decimal:2',
-        'profit'      => 'decimal:2',
-    ];
+        'quantity' => 'decimal:3',
+        'unit_price' => 'decimal:2',
+        'discount' => 'decimal:2',
 
-    /*
-    |--------------------------------------------------------------------------
-    | Relationships
-    |--------------------------------------------------------------------------
-    */
+        // Main tax
+        'tax_rate' => 'decimal:2',
+        'lekuka_tax_id' => 'integer',
+
+        // Additional tax
+        'lekuka_additional_tax_id' => 'integer',
+        'lekuka_additional_tax_rate' => 'decimal:4',
+
+        // Financial values
+        'tax_amount' => 'decimal:2',
+        'line_total' => 'decimal:2',
+        'cost_price' => 'decimal:2',
+        'profit' => 'decimal:2',
+    ];
 
     public function sale(): BelongsTo
     {
@@ -65,22 +74,10 @@ class SaleItem extends Model
         return $this->belongsTo(Unit::class);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Accessors
-    |--------------------------------------------------------------------------
-    */
-
     public function getSubtotalAttribute(): float
     {
         return $this->quantity * $this->unit_price;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helpers
-    |--------------------------------------------------------------------------
-    */
 
     public function calculateProfit(): float
     {

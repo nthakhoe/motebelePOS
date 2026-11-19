@@ -30,9 +30,9 @@ class PaymentMethod extends Model
     /**
      * Sales using this payment method.
      */
-    public function salePayments(): HasMany
+    public function payments(): HasMany
     {
-        return $this->hasMany(SalePayment::class);
+        return $this->hasMany(Payment::class);
     }
 
     /**

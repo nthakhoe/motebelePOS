@@ -23,7 +23,7 @@ class ConfigurationService
 
                 device: $device,
 
-                endpoint: "/Device/v1/{$device->device_id}/GetConfig",
+                endpoint: "/Device/v2/{$device->device_id}/GetConfig",
 
                 action: "GET_CONFIGURATION"
 
@@ -73,8 +73,7 @@ class ConfigurationService
                     'receipt_forms' =>
                         $data['receiptPrintForms'] ?? [],
 
-                    'taxes' =>
-                        $data['taxes'] ?? [],
+                    'taxes' => $data['applicableTaxes'] ?? [],
 
                     'payment_types' =>
                         $data['moneyTypes'] ?? [],
@@ -101,13 +100,20 @@ class ConfigurationService
         )->first();
     }*/
 
-    public function current(): ?LekukaConfiguration
+    /*public function current(): ?LekukaConfiguration
     {
         $device = LekukaDevice::where('registered', 1)->first();
 
         if (! $device) {
             return null;
         }
+
+        return LekukaConfiguration::where('device_id', $device->id)->first();
+    }*/
+
+    public function current(
+    LekukaDevice $device
+    ): ?LekukaConfiguration {
 
         return LekukaConfiguration::where('device_id', $device->id)->first();
     }

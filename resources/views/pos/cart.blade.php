@@ -39,7 +39,32 @@
                     ✕
                 </button>
 
-                <div>M{{ number_format($item['price'], 2) }}</div>
+                <div>
+                M{{ number_format($item['price'], 2) }}
+                </div>
+
+                <div class="cart-item-discount">
+                    <label>Discount (M)</label>
+
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        max="{{ $item['price'] * $item['quantity'] }}"
+                        value="{{ $item['discount'] ?? 0 }}"
+                        wire:change="updateDiscount(
+                            {{ $item['id'] }},
+                            $event.target.value
+                        )"
+                    >
+                </div>
+
+                <div>
+                    Line discount:
+                    <strong>
+                        M{{ number_format($item['discount'] ?? 0, 2) }}
+                    </strong>
+                </div>
 
 
                  <button
@@ -68,13 +93,13 @@
 
         <div >
 
-            <div class="summary-row">
+          <!--  <div class="summary-row">
 
                 <span>Total Items</span>
 
                 <strong>{{ collect($cart)->sum('quantity') }}</strong>
 
-            </div>
+            </div>-->
 
             <div class="summary-row">
 
@@ -86,7 +111,15 @@
 
             <div class="summary-row">
 
-                <span>VAT</span>
+                <span>Discount</span>
+
+                <strong>M{{ number_format($discount,2) }}</strong>
+
+            </div>
+
+            <div class="summary-row">
+
+                <span>TAX</span>
 
                 <strong>M{{ number_format($vat,2) }}</strong>
 

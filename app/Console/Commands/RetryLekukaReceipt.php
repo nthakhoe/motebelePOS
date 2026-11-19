@@ -6,14 +6,16 @@ use App\Models\LekukaDevice;
 use App\Models\LekukaReceipt;
 use App\Services\Lekuka\LekukaClient;
 use Illuminate\Console\Command;
-use Illuminate\Support\Str;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\ConnectionException;
 use Throwable;
 
 class RetryLekukaReceipt extends Command
 {
     protected $signature = 'lekuka:retry-receipt {id}';
 
-    protected $description = 'Retry an existing pending Lekuka receipt using its original signed payload';
+    protected $description =
+        'Retry an existing pending Lekuka receipt using its original signed payload';
 
     public function handle(LekukaClient $client): int
     {
@@ -36,7 +38,18 @@ class RetryLekukaReceipt extends Command
         }
 
         if (empty($receipt->request)) {
-            $this->error("Receipt {$receipt->id} has no stored request.");
+            $this->error(
+                "Receipt {$receipt->id} has no stored request."
+            );
+
+            return self::FAILURE;
+        }
+
+        if (empty($receipt->correlation_id)) {
+            $this->error(
+                "Receipt {$receipt->id} has no original correlation ID. Retry blocked."
+            );
+
             return self::FAILURE;
         }
 
@@ -52,23 +65,23 @@ class RetryLekukaReceipt extends Command
 
         /*
         |--------------------------------------------------------------------------
-        | Request
+        | Load original persisted request
         |--------------------------------------------------------------------------
         */
 
-        $payload = is_array($receipt->request)
-            ? $receipt->request
-            : json_decode($receipt->request, true);
+        $payload = $receipt->request;
 
         if (! is_array($payload)) {
-            $this->error('Stored request is not valid JSON.');
+            $this->error('Stored request is not a valid array.');
             return self::FAILURE;
         }
 
         $data = $payload['receipt'] ?? $payload;
 
         $counter = $data['receiptCounter'] ?? null;
+
         $globalNo = $data['receiptGlobalNo'] ?? null;
+
         $invoiceNo = $data['invoiceNo'] ?? null;
 
         $this->newLine();
@@ -82,11 +95,14 @@ class RetryLekukaReceipt extends Command
 
         /*
         |--------------------------------------------------------------------------
-        | Safety check
+        | Fiscal number integrity checks
         |--------------------------------------------------------------------------
         */
 
-        if ((int) $counter !== (int) $receipt->receipt_counter) {
+        if (
+            $counter === null ||
+            (int) $counter !== (int) $receipt->receipt_counter
+        ) {
             $this->error(
                 'Stored request counter does not match database counter.'
             );
@@ -94,7 +110,10 @@ class RetryLekukaReceipt extends Command
             return self::FAILURE;
         }
 
-        if ((int) $globalNo !== (int) $receipt->receipt_global_no) {
+        if (
+            $globalNo === null ||
+            (int) $globalNo !== (int) $receipt->receipt_global_no
+        ) {
             $this->error(
                 'Stored request global number does not match database global number.'
             );
@@ -102,24 +121,45 @@ class RetryLekukaReceipt extends Command
             return self::FAILURE;
         }
 
+        if (empty($invoiceNo)) {
+            $this->error(
+                'Original request does not contain an invoice number.'
+            );
+
+            return self::FAILURE;
+        }
+
         /*
         |--------------------------------------------------------------------------
-        | Confirm
+        | Confirm retry
         |--------------------------------------------------------------------------
         */
 
+        $this->warn(
+            'This operation will resend the original persisted fiscal payload.'
+        );
+
+        $this->warn(
+            'No new receipt counter or global receipt number will be allocated.'
+        );
+
         if (! $this->confirm(
-            "Retry receipt {$receipt->id} with counter {$counter}?"
+            "Retry receipt {$receipt->id} using its original correlation ID?"
         )) {
             $this->info('Retry cancelled.');
             return self::SUCCESS;
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Submit original receipt
+        |--------------------------------------------------------------------------
+        */
+
         try {
 
-            $correlationId = (string) Str::uuid();
-
             $response = $client->securePost(
+
                 device: $device,
 
                 endpoint:
@@ -129,50 +169,134 @@ class RetryLekukaReceipt extends Command
 
                 action: 'RETRY_SUBMIT_RECEIPT',
 
-                correlationId: $correlationId,
+                correlationId: $receipt->correlation_id,
+
             );
 
-            $response->throw();
+            $responseData = $response->json();
 
-            $data = $response->json();
+            if (! is_array($responseData)) {
+                $responseData = [];
+            }
 
             /*
             |--------------------------------------------------------------------------
-            | Save Lekuka response
+            | Validate Lekuka response
             |--------------------------------------------------------------------------
             */
 
-            $receipt->update([
+            $lekukaReceiptId =
+                $responseData['receiptID'] ?? null;
 
-                'ReceiptId' =>
-                    $data['receiptID'] ?? $receipt->ReceiptId,
+            $serverSignature =
+                $responseData['receiptServerSignature'] ?? null;
+
+            $validationErrors =
+                $responseData['validationErrors'] ?? [];
+
+            if (! is_array($validationErrors)) {
+                $validationErrors = [];
+            }
+
+            $blockingErrors = [];
+
+            foreach ($validationErrors as $validationError) {
+
+                $color =
+                    $validationError['validationErrorColor'] ?? null;
+
+                if ($color !== 'Yellow') {
+                    $blockingErrors[] = $validationError;
+                }
+            }
+
+            if (
+                ! empty($blockingErrors) ||
+                empty($lekukaReceiptId) ||
+                empty($serverSignature)
+            ) {
+
+                $errorMessage = ! empty($blockingErrors)
+
+                    ? 'Lekuka rejected the receipt: ' .
+                        collect($blockingErrors)
+                            ->map(fn ($error) =>
+                                ($error['validationErrorCode'] ?? 'UNKNOWN')
+                                . ' - '
+                                . ($error['validationErrorDescription'] ?? 'Unknown error')
+                            )
+                            ->implode('; ')
+
+                    : 'Lekuka response did not contain a valid receipt ID and server signature.';
+
+                $receipt->forceFill([
+
+                    'ReceiptId' => $lekukaReceiptId,
+
+                    'server_signature' => $serverSignature,
+
+                    'response' => $responseData,
+
+                    'status' => 'FAILED',
+
+                    'error_message' => $errorMessage,
+
+                ])->save();
+
+                $receipt->sale?->update([
+                    'submitted_to_lekuka' => false,
+                ]);
+
+                $this->error($errorMessage);
+
+                return self::FAILURE;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Save confirmed Lekuka receipt
+            |--------------------------------------------------------------------------
+            */
+
+            $receipt->forceFill([
+
+                'ReceiptId' => $lekukaReceiptId,
 
                 'InvoiceNo' =>
-                    $data['invoiceNo']
-                    ?? $invoiceNo
-                    ?? $receipt->InvoiceNo,
+                    $responseData['invoiceNo']
+                    ?? $invoiceNo,
 
-                'DeviceId' =>
-                    $device->device_id,
+                'DeviceId' => $device->device_id,
 
                 'receipt_number' =>
                     $receipt->receipt_number
                     ?? $invoiceNo,
 
-                'server_signature' =>
-                    isset($data['receiptServerSignature'])
-                        ? json_encode(
-                            $data['receiptServerSignature']
-                        )
-                        : $receipt->server_signature,
+                'receipt_global_no' =>
+                    (string) $globalNo,
 
-                'response' => $data,
+                'receipt_counter' =>
+                    (string) $counter,
+
+                'server_signature' => $serverSignature,
+
+                'qr_code' =>
+                    $responseData['qrCode']
+                    ?? $receipt->qr_code,
+
+                'verification_code' =>
+                    $responseData['verificationCode']
+                    ?? $receipt->verification_code,
+
+                'response' => $responseData,
 
                 'status' => 'SUBMITTED',
 
+                'error_message' => null,
+
                 'submitted_at' => now(),
 
-            ]);
+            ])->save();
 
             /*
             |--------------------------------------------------------------------------
@@ -188,21 +312,7 @@ class RetryLekukaReceipt extends Command
 
                     'lekuka_receipt_id' => $receipt->id,
 
-                    'receipt_no' =>
-                        $receipt->receipt_number,
-
-                    'receipt_global_no' =>
-                        $receipt->receipt_global_no,
-
-                    'receipt_counter' =>
-                        $receipt->receipt_counter,
-
-                    'fiscal_day_no' =>
-                        $receipt->fiscal_day_no,
-
-                    'lekuka_status' => 'SUBMITTED',
-
-                    'submitted_at' => now(),
+                    'qr_code' => $receipt->qr_code,
 
                 ]);
             }
@@ -214,17 +324,74 @@ class RetryLekukaReceipt extends Command
             );
 
             $this->line(
-                'Lekuka Receipt ID: ' .
-                ($data['receiptID'] ?? 'N/A')
+                'Lekuka Receipt ID: ' . $lekukaReceiptId
+            );
+
+            $this->line(
+                'Original Counter: ' . $counter
+            );
+
+            $this->line(
+                'Original Global Number: ' . $globalNo
             );
 
             return self::SUCCESS;
+
+        } catch (RequestException $e) {
+
+            $httpStatus = $e->response->status();
+
+            $ambiguous =
+                $httpStatus === 408 ||
+                $httpStatus >= 500;
+
+            $receipt->forceFill([
+
+                'status' => $ambiguous
+                    ? 'PENDING'
+                    : 'FAILED',
+
+                'error_message' => $e->getMessage(),
+
+                'response' => $e->response->json(),
+
+            ])->save();
+
+            $this->error(
+                "Lekuka returned HTTP {$httpStatus}."
+            );
+
+            $this->warn(
+                $ambiguous
+                    ? 'Outcome is uncertain. Original receipt remains PENDING.'
+                    : 'Lekuka returned an unsuccessful response. Receipt marked FAILED.'
+            );
+
+            return self::FAILURE;
+
+        } catch (ConnectionException $e) {
+
+            $receipt->forceFill([
+
+                'status' => 'PENDING',
+
+                'error_message' => $e->getMessage(),
+
+            ])->save();
+
+            $this->error(
+                'Connection failed. Original receipt remains PENDING.'
+            );
+
+            return self::FAILURE;
 
         } catch (Throwable $e) {
 
             $this->error(
                 'Retry failed: ' . $e->getMessage()
             );
+
+            report($e);
 
             return self::FAILURE;
         }

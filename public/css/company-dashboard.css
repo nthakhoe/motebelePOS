@@ -1019,3 +1019,53 @@
 .fi-header-heading {
     display: none;
 }
+
+/* =========================================
+   PRODUCT FORM - FULL WIDTH TABS
+========================================= */
+
+.product-full-width-tabs {
+    display: block;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+}
+
+/* Tab navigation */
+.product-full-width-tabs .fi-tabs {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;
+    gap: 6px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* Individual tab buttons */
+.product-full-width-tabs .fi-tabs-item {
+    flex: 1 1 150px !important;
+    min-width: 0 !important;
+    justify-content: center;
+    text-align: center;
+}
+
+/* Tab content */
+.product-full-width-tabs .fi-tabs-content {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Responsive tablets */
+@media (max-width: 768px) {
+    .product-full-width-tabs .fi-tabs-item {
+        flex: 1 1 40% !important;
+    }
+}
+
+/* Responsive mobile */
+@media (max-width: 480px) {
+    .product-full-width-tabs .fi-tabs-item {
+        flex: 1 1 100% !important;
+    }
+}

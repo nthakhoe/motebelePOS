@@ -41,6 +41,10 @@ use Filament\Actions\ViewAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Illuminate\Database\Eloquent\Builder;
+use App\Models\LekukaDevice;
+use App\Models\LekukaConfiguration;
+use Filament\Forms\Components\Hidden;
+use Filament\Support\Enums\Width;
 
 class ProductResource extends Resource
 {
@@ -51,6 +55,91 @@ class ProductResource extends Resource
     protected static UnitEnum|string|null $navigationGroup = 'Inventory';
 
     protected static ?int $navigationSort = 1;
+
+    /**
+     * Retrieve the Lekuka configuration belonging to
+     * the current company's registered device.
+     */
+
+
+    public function getMaxContentWidth(): Width
+    {
+        return Width::Full;
+    }
+
+    protected static function getLekukaConfiguration(): ?LekukaConfiguration
+    {
+        $user = auth()->user();
+
+        if (! $user || ! $user->company_id) {
+            return null;
+        }
+
+        $query = LekukaDevice::query()
+            ->where('company_id', $user->company_id)
+            ->where('registered', true);
+
+        // If the logged-in user is assigned to a branch,
+        // retrieve that branch's device.
+        if (! empty($user->branch_id)) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $devices = $query->get();
+
+        // Do not arbitrarily select a device if multiple
+        // registered devices match the current context.
+        if ($devices->count() !== 1) {
+            return null;
+        }
+
+        return LekukaConfiguration::where(
+            'device_id',
+            $devices->first()->id
+        )->first();
+    }
+
+
+    /**
+     * Retrieve applicable taxes from the saved configuration.
+     */
+    protected static function getLekukaTaxes(): array
+    {
+        $configuration = static::getLekukaConfiguration();
+
+        if (! $configuration) {
+            return [];
+        }
+
+        return collect($configuration->taxes ?? [])
+            ->filter(fn ($tax) => isset($tax['taxID'], $tax['taxName'], $tax['taxType']))
+            ->values()
+            ->all();
+    }
+
+
+    /**
+     * Generate dropdown options from Lekuka tax allocations.
+     */
+    protected static function getLekukaTaxOptions(): array
+    {
+        return collect(static::getLekukaTaxes())
+            ->mapWithKeys(function ($tax) {
+
+                $rate = isset($tax['taxRate'])
+                    ? ' - Rate/Value: ' . $tax['taxRate']
+                    : '';
+
+                $label = $tax['taxName']
+                    . ' (' . $tax['taxType'] . ')'
+                    . $rate;
+
+                return [
+                    $tax['taxID'] => $label,
+                ];
+            })
+            ->all();
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -130,32 +219,199 @@ class ProductResource extends Resource
                         */
 
                         Tab::make('Pricing')
-
                             ->icon('heroicon-o-banknotes')
-
                             ->schema([
 
-                                Grid::make(3)
-
+                                Section::make('Product Pricing')
+                                    ->description('Configure cost price, margin and final customer selling price.')
                                     ->schema([
 
-                                        TextInput::make('cost_price')
-                                            ->numeric()
-                                            ->prefix('M'),
+                                        Grid::make(3)
+                                            ->schema([
 
-                                        TextInput::make('selling_price')
-                                            ->numeric()
-                                            ->prefix('M'),
+                                                TextInput::make('cost_price')
+                                                    ->label('Cost Price')
+                                                    ->numeric()
+                                                    ->prefix('M')
+                                                    ->required()
+                                                    ->minValue(0)
+                                                    ->live(onBlur: true)
+                                                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
 
-                                        TextInput::make('minimum_price')
-                                            ->numeric()
-                                            ->prefix('M'),
+                                                        $cost = (float) ($state ?? 0);
+                                                        $margin = (float) ($get('margin_percentage') ?? 30);
 
-                                        TextInput::make('tax_rate')
-                                            ->numeric()
-                                            ->suffix('%')
+                                                        if ($cost < 0) {
+                                                            return;
+                                                        }
 
-                                    ])
+                                                        $sellingPrice = round(
+                                                            $cost * (1 + ($margin / 100)),
+                                                            2
+                                                        );
+
+                                                        $set('selling_price', number_format($sellingPrice, 2, '.', ''));
+                                                    }),
+
+                                                TextInput::make('margin_percentage')
+                                                    ->label('Margin Percentage')
+                                                    ->numeric()
+                                                    ->suffix('%')
+                                                    ->default(30)
+                                                    ->required()
+                                                    ->minValue(0)
+                                                    ->live(onBlur: true)
+                                                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
+
+                                                        $cost = (float) ($get('cost_price') ?? 0);
+                                                        $margin = (float) ($state ?? 0);
+
+                                                        if ($cost < 0 || $margin < 0) {
+                                                            return;
+                                                        }
+
+                                                        $sellingPrice = round(
+                                                            $cost * (1 + ($margin / 100)),
+                                                            2
+                                                        );
+
+                                                        $set('selling_price', number_format($sellingPrice, 2, '.', ''));
+                                                    }),
+
+                                                TextInput::make('selling_price')
+                                                    ->label('Selling Price (Final Customer Price)')
+                                                    ->numeric()
+                                                    ->prefix('M')
+                                                    ->required()
+                                                    ->minValue(0)
+                                                    ->live(onBlur: true)
+                                                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
+
+                                                        $cost = (float) ($get('cost_price') ?? 0);
+                                                        $sellingPrice = (float) ($state ?? 0);
+
+                                                        if ($cost <= 0 || $sellingPrice < 0) {
+                                                            $set('margin_percentage', 0);
+                                                            return;
+                                                        }
+
+                                                        $margin = (($sellingPrice - $cost) / $cost) * 100;
+
+                                                        $set(
+                                                            'margin_percentage',
+                                                            number_format(round($margin, 2), 2, '.', '')
+                                                        );
+                                                    }),
+
+                                                TextInput::make('minimum_price')
+                                                    ->label('Minimum Selling Price')
+                                                    ->numeric()
+                                                    ->prefix('M')
+                                                    ->minValue(0),
+
+                                            ]),
+
+                                        Section::make('Lekuka Tax Allocations')
+                                            ->description('Select the main tax and, where applicable, an additional levy.')
+                                            ->schema([
+
+                                                Grid::make(2)
+                                                    ->schema([
+
+                                                        Select::make('lekuka_tax_id')
+                                                            ->label('Main Lekuka Tax Allocation')
+                                                            ->options(fn () => static::getLekukaTaxOptions())
+                                                            ->searchable()
+                                                            ->preload()
+                                                            ->live()
+                                                            ->required()
+                                                            ->placeholder('Select main tax allocation')
+                                                            ->helperText(function () {
+
+                                                                if (empty(static::getLekukaTaxOptions())) {
+                                                                    return 'No Lekuka tax allocations available. Check the registered device and downloaded configuration.';
+                                                                }
+
+                                                                return 'Select the main tax classification applicable to this product.';
+                                                            })
+                                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+
+                                                                $tax = collect(static::getLekukaTaxes())
+                                                                    ->firstWhere('taxID', (int) $state);
+
+                                                                if (! $tax) {
+                                                                    $set('lekuka_tax_type', null);
+                                                                    $set('lekuka_tax_code', null);
+                                                                    $set('tax_rate', 0);
+
+                                                                    return;
+                                                                }
+
+                                                                $set('lekuka_tax_type', $tax['taxType']);
+                                                                $set('lekuka_tax_code', null);
+                                                                $set('tax_rate', $tax['taxRate'] ?? 0);
+                                                            }),
+
+                                                        Select::make('lekuka_additional_tax_id')
+                                                            ->label('Additional Lekuka Tax / Levy (Optional)')
+                                                            ->options(fn () => static::getLekukaTaxOptions())
+                                                            ->searchable()
+                                                            ->preload()
+                                                            ->live()
+                                                            ->placeholder('No additional tax')
+                                                            ->rules([
+                                                                'different:lekuka_tax_id',
+                                                            ])
+                                                            ->helperText('Select an additional levy only when applicable.')
+                                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+
+                                                                if (! $state) {
+                                                                    $set('lekuka_additional_tax_type', null);
+                                                                    $set('lekuka_additional_tax_code', null);
+                                                                    $set('lekuka_additional_tax_rate', null);
+
+                                                                    return;
+                                                                }
+
+                                                                $tax = collect(static::getLekukaTaxes())
+                                                                    ->firstWhere('taxID', (int) $state);
+
+                                                                if (! $tax) {
+                                                                    $set('lekuka_additional_tax_type', null);
+                                                                    $set('lekuka_additional_tax_code', null);
+                                                                    $set('lekuka_additional_tax_rate', null);
+
+                                                                    return;
+                                                                }
+
+                                                                $set('lekuka_additional_tax_type', $tax['taxType']);
+                                                                $set('lekuka_additional_tax_code', null);
+                                                                $set('lekuka_additional_tax_rate', $tax['taxRate'] ?? 0);
+                                                            }),
+
+                                                        TextInput::make('tax_rate')
+                                                            ->label('Main Tax Rate / Value')
+                                                            ->numeric()
+                                                            ->readOnly(),
+
+                                                        TextInput::make('lekuka_additional_tax_rate')
+                                                            ->label('Additional Tax Rate / Value')
+                                                            ->numeric()
+                                                            ->readOnly(),
+
+                                                        Hidden::make('lekuka_tax_type'),
+
+                                                        Hidden::make('lekuka_tax_code'),
+
+                                                        Hidden::make('lekuka_additional_tax_type'),
+
+                                                        Hidden::make('lekuka_additional_tax_code'),
+
+                                                    ]),
+
+                                            ]),
+
+                                    ]),
 
                             ]),
 
@@ -224,12 +480,16 @@ class ProductResource extends Resource
                                     ->directory('products')
 
                                     ->columnSpanFull()
+                                    ->extraAttributes([
+                                        'class' => 'product-full-width-tabs',
+                                    ]),
 
                             ])
 
                     ])
 
-            ]);
+            ])
+            ->columns(1);
     }
 
     public static function table(Table $table): Table

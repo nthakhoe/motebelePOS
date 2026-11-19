@@ -161,6 +161,8 @@ class POS extends Page implements HasActions
 
     public function addToCart(int $productId): void
     {
+
+
         $product = Product::query()
             ->with('unit')
             ->find($productId);
@@ -198,43 +200,67 @@ class POS extends Page implements HasActions
 
                 'discount' => 0,
 
-                'tax' => 15,
+                'tax' => (float) ($product->tax_rate ?? 0),
+
+                'lekuka_tax_id' => $product->lekuka_tax_id,
+
+                'lekuka_tax_type' => $product->lekuka_tax_type,
+
+                'lekuka_tax_code' => $product->lekuka_tax_code,
+
+                'additional_tax_rate' => (float) ($product->lekuka_additional_tax_rate ?? 0),
+
+                'additional_tax_type' => $product->lekuka_additional_tax_type,
+
+                'main_tax_type' => $product->lekuka_tax_type,
 
                 'line_total' => (float) $product->selling_price,
 
             ];
         }
-
         $this->calculateTotals();
     }
 
+    
     public function calculateTotals(): void
     {
         $this->subtotal = 0;
         $this->discount = 0;
         $this->vat = 0;
+        $this->total = 0;
 
+        $discountService = app(\App\Services\DiscountService::class);
         $taxService = app(\App\Services\TaxService::class);
 
         foreach ($this->cart as $item) {
 
-            $result = $taxService->calculateInclusive(
-                $item['price'],
-                $item['quantity'],
-                $item['tax']
+            $discountResult = $discountService->calculate(
+                unitPrice: (float) $item['price'],
+                quantity: (float) $item['quantity'],
+                discount: (float) ($item['discount'] ?? 0),
             );
-            $this->subtotal += $result['subtotal'];
 
-            $this->discount += $item['discount'];
+            $taxResult = $taxService->calculateInclusive(
+                price: $discountResult['effective_unit_price'],
+                qty: (float) $item['quantity'],
+                rate: (float) ($item['tax'] ?? 0),
+                additionalRate: (float) ($item['additional_tax_rate'] ?? 0),
+                additionalType: $item['additional_tax_type'] ?? null,
+                mainType: $item['main_tax_type'] ?? null,
+            );
 
-            $this->vat += $result['tax'];
+            $this->subtotal += $taxResult['subtotal'];
+            $this->discount += $discountResult['discount'];
+            $this->vat += $taxResult['tax'];
+            $this->total += $taxResult['total'];
         }
 
-        $this->total =
-            $this->subtotal
-            - $this->discount
-            + $this->vat;
+        $this->subtotal = round($this->subtotal, 2);
+        $this->discount = round($this->discount, 2);
+        $this->vat = round($this->vat, 2);
+        $this->total = round($this->total, 2);
     }
+
 
     public function increaseQty(int $productId): void
     {
@@ -438,7 +464,7 @@ class POS extends Page implements HasActions
 
                 );
 
-                try {
+                /*try {
 
                     $device = LekukaDevice::where('registered', 1)->firstOrFail();
 
@@ -455,12 +481,12 @@ class POS extends Page implements HasActions
                         ->persistent()
                         ->send();
 
-                }
+                }*/
 
                 $this->completedSale = [
                     'id'          => $sale->id,
                     'sale_number' => $sale->sale_number,
-                    'receipt_no'  => $sale->receipt_no,
+                    'receipt_no'  => $sale->lekukaReceipt?->receipt_number,
                     'total'       => $sale->total,
                     'paid'        => $amountReceived,
                     'change'      => $change,
@@ -494,6 +520,36 @@ class POS extends Page implements HasActions
 
         // Optional: place cursor back in the barcode/search field
         $this->dispatch('focus-barcode');
+    }
+
+    public function updateDiscount(int $productId, $discount): void
+    {
+        if (! isset($this->cart[$productId])) {
+            return;
+        }
+
+        $product = Product::findOrFail($productId);
+
+        try {
+            $result = app(\App\Services\DiscountService::class)->calculate(
+                unitPrice: (float) $this->cart[$productId]['price'],
+                quantity: (float) $this->cart[$productId]['quantity'],
+                discount: (float) $discount,
+                costPrice: (float) $product->cost_price,
+            );
+
+            $this->cart[$productId]['discount'] = $result['discount'];
+
+            $this->calculateTotals();
+
+        } catch (\InvalidArgumentException $e) {
+
+            Notification::make()
+                ->title('Invalid discount')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 
 }

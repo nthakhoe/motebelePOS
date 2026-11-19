@@ -69,14 +69,6 @@
 
         </div>
 
-        {{-- Legend --}}
-        <div class="floor-legend">
-            <span><i class="legend-dot available"></i> Available</span>
-            <span><i class="legend-dot occupied"></i> Occupied</span>
-            <span><i class="legend-dot reserved"></i> Reserved</span>
-            <span><i class="legend-dot cleaning"></i> Cleaning</span>
-        </div>
-
         {{-- Dining Areas --}}
         @forelse($areas as $area)
 

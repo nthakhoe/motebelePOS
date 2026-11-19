@@ -23,6 +23,8 @@ class RestaurantFloorPlan extends Page
 
     public ?int $selectedBranchId = null;
 
+    protected static ?string $title = null;
+
     public function mount(): void
     {
         $user = Auth::user();
@@ -61,7 +63,7 @@ class RestaurantFloorPlan extends Page
         }
     }
 
-    public function getTitle(): string
+    /*public function getTitle(): string
     {
         return 'Restaurant Floor Plan';
     }
@@ -69,7 +71,7 @@ class RestaurantFloorPlan extends Page
     public function getSubheading(): ?string
     {
         return 'Monitor restaurant tables and their availability.';
-    }
+    }*/
 
     protected function getViewData(): array
     {

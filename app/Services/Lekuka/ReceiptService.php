@@ -42,41 +42,41 @@ class ReceiptService
         |--------------------------------------------------------------------------
         */
 
+        // Inspect every existing receipt for this sale. FAILED receipts must
+        // not be ignored: the gateway may have accepted a request even when the
+        // local process did not receive or persist its response.
         $existingReceipt = LekukaReceipt::query()
             ->where('sale_id', $sale->id)
-            ->whereIn('status', [
-                'PENDING',
-                'SUBMITTED',
-            ])
             ->latest('id')
             ->first();
 
         if ($existingReceipt) {
-
-            /*
-            |--------------------------------------------------------------------------
-            | Already submitted
-            |--------------------------------------------------------------------------
-            */
-
             if ($existingReceipt->status === 'SUBMITTED') {
-
                 return $sale->fresh();
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Existing PENDING receipt
-            |
-            | We must reuse the exact same payload/counter rather than
-            | generating a new fiscal receipt number.
-            |--------------------------------------------------------------------------
-            */
+            if ($existingReceipt->status === 'PENDING') {
+                // Reuse the exact persisted payload and fiscal numbers.
+                return $this->submitPendingReceipt(
+                    receipt: $existingReceipt,
+                    sale: $sale,
+                    device: $device,
+                );
+            }
 
-            return $this->submitPendingReceipt(
-                receipt: $existingReceipt,
-                sale: $sale,
-                device: $device,
+            if ($existingReceipt->status === 'FAILED') {
+                throw new \RuntimeException(
+                    "Sale {$sale->id} already has FAILED Lekuka receipt " .
+                    "{$existingReceipt->id}. Do not allocate another fiscal " .
+                    "number until the existing receipt has been reconciled " .
+                    "against Lekuka."
+                );
+            }
+
+            throw new \RuntimeException(
+                "Sale {$sale->id} has an existing Lekuka receipt in " .
+                "unsupported status '{$existingReceipt->status}'. " .
+                "Manual reconciliation is required."
             );
         }
 
@@ -92,6 +92,13 @@ class ReceiptService
 
         $receipt = DB::transaction(function () use ($sale, $device) {
 
+            // Serialize fiscalization attempts for the same sale, even if two
+            // requests arrive through different devices/processes.
+            Sale::query()
+                ->whereKey($sale->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
             /*
             |--------------------------------------------------------------------------
             | Lock the device row
@@ -105,6 +112,25 @@ class ReceiptService
                 ->whereKey($device->id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            // Recheck after acquiring the device lock. Two concurrent calls
+            // may both pass the initial lookup; the lock serializes allocation,
+            // and this second lookup prevents the later call from allocating a
+            // second fiscal number for the same sale.
+            $concurrentReceipt = LekukaReceipt::query()
+                ->where('sale_id', $sale->id)
+                ->latest('id')
+                ->first();
+
+            if ($concurrentReceipt) {
+                throw new \RuntimeException(
+                    "Sale {$sale->id} already has Lekuka receipt " .
+                    "{$concurrentReceipt->id} (status: " .
+                    "{$concurrentReceipt->status}). No new fiscal number " .
+                    "was allocated. Re-run the operation to reuse or " .
+                    "reconcile that receipt."
+                );
+            }
 
             /*
             |--------------------------------------------------------------------------
@@ -144,17 +170,19 @@ class ReceiptService
                 ->value('receipt_counter');
 
             // Counter resets automatically when a new fiscal day has no receipts.
-            $receiptCounter = ((int) $lastDayReceiptCounter) + 1;
+            // Preserve independently calculated expected values. Do not
+            // derive the expected value from the builder output being checked.
+            $expectedCounter = ((int) $lastDayReceiptCounter) + 1;
 
             // Global receipt number continues across all fiscal days.
-            $receiptGlobalNo = ((int) $lockedDevice->last_global_receipt_no) + 1;
+            $expectedGlobalNo = ((int) $lockedDevice->last_global_receipt_no) + 1;
 
             $receiptData = $this->builder->build(
                 sale: $sale,
                 day: $day,
                 device: $lockedDevice,
-                receiptCounter: $receiptCounter,
-                receiptGlobalNo: $receiptGlobalNo,
+                receiptCounter: $expectedCounter,
+                receiptGlobalNo: $expectedGlobalNo,
             );
 
             $payload = $receiptData['payload'];
@@ -167,22 +195,22 @@ class ReceiptService
             |--------------------------------------------------------------------------
             */
 
-            $receiptCounter = $payload['receipt']['receiptCounter']
+            $actualReceiptCounter = $payload['receipt']['receiptCounter']
                 ?? null;
 
-            $receiptGlobalNo = $payload['receipt']['receiptGlobalNo']
+            $actualReceiptGlobalNo = $payload['receipt']['receiptGlobalNo']
                 ?? null;
 
             $invoiceNo = $payload['receipt']['invoiceNo']
                 ?? $sale->sale_number;
 
-            if ($receiptCounter === null) {
+            if ($actualReceiptCounter === null) {
                 throw new \RuntimeException(
                     'Receipt counter was not generated by ReceiptPayloadBuilder.'
                 );
             }
 
-            if ($receiptGlobalNo === null) {
+            if ($actualReceiptGlobalNo === null) {
                 throw new \RuntimeException(
                     'Receipt global number was not generated by ReceiptPayloadBuilder.'
                 );
@@ -194,28 +222,23 @@ class ReceiptService
             |--------------------------------------------------------------------------
             */
 
-            $expectedCounter = $receiptCounter;
-
-            $expectedGlobalNo =
-                ((int) $lockedDevice->last_global_receipt_no) + 1;
-
-            if ((int) $receiptCounter !== $expectedCounter) {
-
+            if ((int) $actualReceiptCounter !== $expectedCounter) {
                 throw new \RuntimeException(
-                    "Receipt counter mismatch. " .
-                    "Expected {$expectedCounter}, " .
-                    "got {$receiptCounter}."
+                    "Receipt counter mismatch. Expected {$expectedCounter}, " .
+                    "got {$actualReceiptCounter}."
                 );
             }
 
-            if ((int) $receiptGlobalNo !== $expectedGlobalNo) {
-
+            if ((int) $actualReceiptGlobalNo !== $expectedGlobalNo) {
                 throw new \RuntimeException(
-                    "Receipt global number mismatch. " .
-                    "Expected {$expectedGlobalNo}, " .
-                    "got {$receiptGlobalNo}."
+                    "Receipt global number mismatch. Expected {$expectedGlobalNo}, " .
+                    "got {$actualReceiptGlobalNo}."
                 );
             }
+
+            // Use the validated payload values for persistence below.
+            $receiptCounter = (int) $actualReceiptCounter;
+            $receiptGlobalNo = (int) $actualReceiptGlobalNo;
 
             /*
             |--------------------------------------------------------------------------
@@ -513,9 +536,29 @@ class ReceiptService
 
                 $errorMessage = $this->extractErrorMessage($data);
 
+                $httpStatus = $response->status();
+
+                /*
+                |--------------------------------------------------------------------------
+                | Distinguish definitive rejection from uncertain outcome.
+                |--------------------------------------------------------------------------
+                |
+                | HTTP 408 and 5xx responses may occur after the gateway has
+                | received the submission. Preserve the original receipt as PENDING.
+                |
+                | Other unsuccessful responses are treated as definitive rejection.
+                |--------------------------------------------------------------------------
+                */
+
+                $ambiguousResponse =
+                    $httpStatus === 408 ||
+                    $httpStatus >= 500;
+
                 $receipt->forceFill([
 
-                    'status' => 'FAILED',
+                    'status' => $ambiguousResponse
+                        ? 'PENDING'
+                        : 'FAILED',
 
                     'response' => $data,
 
@@ -527,13 +570,10 @@ class ReceiptService
 
                     'submitted_to_lekuka' => false,
 
-                    'lekuka_status' => 'FAILED',
-
                 ]);
 
                 $response->throw();
             }
-
             /*
             |--------------------------------------------------------------------------
             | Extract Lekuka response values
@@ -606,8 +646,6 @@ class ReceiptService
                 $sale->update([
 
                     'submitted_to_lekuka' => false,
-
-                    'lekuka_status' => 'FAILED',
 
                 ]);
 
@@ -691,26 +729,7 @@ class ReceiptService
 
                 'lekuka_receipt_id' => $receipt->id,
 
-                'receipt_no' => $receipt->receipt_number,
-
-                'receipt_global_no' =>
-                    $receipt->receipt_global_no,
-
-                'receipt_counter' =>
-                    $receipt->receipt_counter,
-
-                'fiscal_day_no' =>
-                    $receipt->fiscal_day_no,
-
-                'verification_code' =>
-                    $receipt->verification_code,
-
-                'qr_code' =>
-                    $receipt->qr_code,
-
-                'lekuka_status' => 'SUBMITTED',
-
-                'submitted_at' => now(),
+                'qr_code' => $receipt->qr_code,
 
             ]);
 
@@ -755,6 +774,23 @@ class ReceiptService
 
         } catch (Throwable $e) {
 
+            // Once Lekuka has confirmed acceptance, never downgrade the local
+            // receipt to PENDING/FAILED. A subsequent local Sale update failure
+            // is a reconciliation issue, not a reason to resubmit the receipt.
+            if ($receipt->status === 'SUBMITTED') {
+                \Log::error(
+                    'Lekuka accepted the receipt, but a post-submission local operation failed.',
+                    [
+                        'receipt_id' => $receipt->id,
+                        'sale_id' => $sale->id,
+                        'device_id' => $device->device_id,
+                        'error' => $e->getMessage(),
+                    ]
+                );
+
+                throw $e;
+            }
+
             /*
             |--------------------------------------------------------------------------
             | IMPORTANT:
@@ -780,8 +816,6 @@ class ReceiptService
             $sale->update([
 
                 'submitted_to_lekuka' => false,
-
-                'lekuka_status' => 'FAILED',
 
             ]);
 
@@ -892,17 +926,23 @@ class ReceiptService
 
         /*
         |--------------------------------------------------------------------------
-        | Only PENDING or FAILED receipts may be retried
+        | Only PENDING receipts may be retried automatically.
+        | FAILED receipts require reconciliation first because the gateway
+        | may have accepted a request before the local failure was recorded.
         |--------------------------------------------------------------------------
         */
 
-        if (! in_array($receipt->status, [
-            'PENDING',
-            'FAILED',
-        ], true)) {
-
+        if ($receipt->status === 'FAILED') {
             throw new \RuntimeException(
-                "Receipt {$receipt->id} cannot be retried."
+                "Receipt {$receipt->id} is FAILED. Reconcile its status with " .
+                "Lekuka before attempting any further submission."
+            );
+        }
+
+        if ($receipt->status !== 'PENDING') {
+            throw new \RuntimeException(
+                "Receipt {$receipt->id} cannot be retried from status " .
+                "'{$receipt->status}'."
             );
         }
 
